@@ -11,4 +11,5 @@ export const env = {
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
   REDIS_HOST: process.env.REDIS_HOST || "",
   REDIS_PORT: process.env.REDIS_PORT || "",
+  RESEND_API_KEY: process.env.RESEND_API_KEY || "",
 };
