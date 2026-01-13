@@ -7,10 +7,10 @@ import { connectDatabase } from "./config/db";
 import { env } from "./config/env";
 import morganMiddleware from "./middlewares/morganMiddleware";
 import authRoute from "./routes/authRoute";
+import logger from "./utils/logger";
 
 const app = express();
 
-// CORS configuration for cookie support
 app.use(
   cors({
     origin: env.FRONTEND_URL,
@@ -43,7 +43,7 @@ async function startServer() {
   await connectDatabase();
 
   app.listen(env.PORT, () => {
-    console.log(`🚀 Server is running on port ${env.PORT}`);
+    logger.info(`🚀 Server is running on port ${env.PORT}`);
   });
 }
 
