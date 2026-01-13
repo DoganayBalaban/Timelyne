@@ -47,7 +47,7 @@ export const register = async (req: Request, res: Response) => {
     });
 
     // Generate tokens with separate secrets
-    const accessToken = jwt.sign({ userId: user.id }, env.JWT_SECRET, {
+    const accessToken = jwt.sign({ userId: user.id }, env.JWT_ACCESS_SECRET, {
       expiresIn: "15m",
     });
 
@@ -123,7 +123,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate tokens with separate secrets
-    const accessToken = jwt.sign({ userId: user.id }, env.JWT_SECRET, {
+    const accessToken = jwt.sign({ userId: user.id }, env.JWT_ACCESS_SECRET, {
       expiresIn: "15m",
     });
 
@@ -259,7 +259,7 @@ export const refresh = async (req: Request, res: Response) => {
 
     const newAccessToken = jwt.sign(
       { userId: payload.userId },
-      env.JWT_SECRET,
+      env.JWT_ACCESS_SECRET,
       { expiresIn: "15m" }
     );
 
