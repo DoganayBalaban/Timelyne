@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
+import logger from "../utils/logger"; // Winston logger'ı ekledik
 import { prisma } from "../utils/prisma";
 
 export interface AuthRequest extends Request {
@@ -15,50 +16,49 @@ export const protect = async (
   next: NextFunction
 ) => {
   try {
-    const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    // Öncelik: httpOnly cookie'deki accessToken
-    const cookieToken =
-      (req as any).cookies?.accessToken ||
-      (req as any).signedCookies?.accessToken;
-
-    let token = cookieToken as string | undefined;
-
-    // Cookie yoksa Authorization header'dan dene (örn. API client'lar için)
-    if (!token && authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1];
+    // 1. Token'ı Cookie veya Header'dan al
+    if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    } else if (req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
     }
 
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Oturum açmanız gerekiyor." });
     }
 
-    const decoded = jwt.verify(token, env.JWT_SECRET) as {
+    // 2. Token Doğrulama
+    // Not: Access token ve Refresh token için farklı secretlar kullanman güvenliği artırır
+    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as {
       userId: string;
     };
 
-    if (!decoded || !decoded.userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
+    // 3. Veritabanı Kontrolü (User aktif mi?)
+    // İpucu: Bu sorguyu çok sık yapıyorsan Redis ile cache'leyebilirsin.
     const user = await prisma.user.findFirst({
       where: {
         id: decoded.userId,
-        deleted_at: null, // Soft delete kontrolü
+        deleted_at: null,
       },
-      select: {
-        id: true,
-      },
+      select: { id: true },
     });
 
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      logger.warn(`Geçersiz token denemesi: Kullanıcı bulunamadı. ID: ${decoded.userId}`);
+      return res.status(401).json({ message: "Kullanıcı artık aktif değil." });
     }
 
+    // 4. User bilgisini request'e ekle
     req.user = user;
     next();
-  } catch (error) {
-    console.error("Error in protect middleware:", error);
-    return res.status(401).json({ message: "Unauthorized" });
+  } catch (error: any) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token süresi doldu.", code: "TOKEN_EXPIRED" });
+    }
+    
+    logger.error("Protect Middleware Hatası:", error);
+    return res.status(401).json({ message: "Yetkisiz erişim." });
   }
 };
