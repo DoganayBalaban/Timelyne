@@ -3,14 +3,14 @@ import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import path from "path";
 import { connectDatabase } from "./config/db";
 import { env } from "./config/env";
+import morganMiddleware from "./middlewares/morganMiddleware";
 import authRoute from "./routes/authRoute";
+import logger from "./utils/logger";
 
 const app = express();
 
-// CORS configuration for cookie support
 app.use(
   cors({
     origin: env.FRONTEND_URL,
@@ -36,14 +36,14 @@ app.use(
   })
 );
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(morganMiddleware);
 app.use("/api/auth", authRoute);
 
 async function startServer() {
   await connectDatabase();
 
   app.listen(env.PORT, () => {
-    console.log(`🚀 Server is running on port ${env.PORT}`);
+    logger.info(`🚀 Server is running on port ${env.PORT}`);
   });
 }
 

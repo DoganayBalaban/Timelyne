@@ -1,28 +1,28 @@
+import logger from "../utils/logger";
 import { prisma } from "../utils/prisma";
-
 export const connectDatabase = async () => {
   try {
-    console.log("🔍 Prisma database bağlantısı kontrol ediliyor...");
+    logger.info("🔍 Prisma database bağlantısı kontrol ediliyor...");
     await prisma.$connect();
-    console.log("✅ Prisma database bağlantısı başarılı!");
+    logger.info("✅ Prisma database bağlantısı başarılı!");
 
     // Basit bir health check query
     const userCount = await prisma.user.count();
-    console.log(
+    logger.info(
       `📊 Database hazır - Users tablosunda ${userCount} kayıt bulundu`
     );
   } catch (error: any) {
-    console.error("❌ Prisma database bağlantı hatası:", error.message);
+    logger.error("❌ Prisma database bağlantı hatası:", error.message);
     if (error.code === "P1001") {
-      console.error(
+      logger.error(
         "💡 Database'e bağlanılamıyor. DATABASE_URL'i kontrol edin."
       );
     } else if (error.code === "P1003") {
-      console.error(
+      logger.error(
         "💡 Database bulunamadı. Database'in oluşturulduğundan emin olun."
       );
     } else if (error.code === "42P01") {
-      console.error(
+      logger.error(
         "💡 Tablo bulunamadı. Migration çalıştırmanız gerekebilir: npx prisma migrate dev"
       );
     }

@@ -17,8 +17,10 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.0.6",
+    "@types/winston": "^2.4.4",
     "nodemon": "^3.1.11",
     "prisma": "^6.19.1",
     "ts-node": "^10.9.2",
@@ -34,6 +36,8 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "winston": "^3.19.0",
     "zod": "^4.3.5"
   }
 }
