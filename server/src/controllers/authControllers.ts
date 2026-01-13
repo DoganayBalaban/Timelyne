@@ -3,32 +3,8 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { prisma } from "../utils/prisma";
+import { setTokenCookies } from "../utils/setTokenCookies";
 import { loginUserSchema, registerUserSchema } from "../validators/userSchema";
-
-// Helper function to set httpOnly cookies
-const setTokenCookies = (
-  res: Response,
-  accessToken: string,
-  refreshToken: string
-) => {
-  const isProduction = env.NODE_ENV === "production";
-
-  // Access token cookie (15 minutes)
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: isProduction, // HTTPS only in production
-    sameSite: isProduction ? "strict" : "lax",
-    maxAge: 15 * 60 * 1000, // 15 minutes
-  });
-
-  // Refresh token cookie (7 days)
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: isProduction, // HTTPS only in production
-    sameSite: isProduction ? "strict" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
-};
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -176,8 +152,71 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-export const logout = () => {};
-export const refresh = () => {};
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (refreshToken) {
+      await prisma.refreshToken.deleteMany({
+        where: {
+          token: refreshToken,
+        },
+      });
+    }
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {}
+};
+export const refresh = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" });
+    }
+    const savedToken = await prisma.refreshToken.findUnique({
+      where: {
+        token: refreshToken,
+      },
+      include: {
+        user: true,
+      },
+    });
+    if (
+      !savedToken ||
+      savedToken.expires_at < new Date() ||
+      savedToken.revoked_at
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Invalid or expired refresh token" });
+    }
+    const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as {
+      userId: string;
+    };
+
+    // Ek güvenlik: token içindeki userId ile DB'deki user_id eşleşmeli
+    if (payload.userId !== savedToken.user_id) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    const newAccessToken = jwt.sign(
+      { userId: payload.userId },
+      env.JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    // Yeni access token'ı cookie'ye yaz
+    setTokenCookies(res, newAccessToken, refreshToken);
+
+    return res.status(200).json({ message: "Token refreshed successfully" });
+  } catch (error: any) {
+    console.error("❌ Token refresh error:", error.message);
+    return res.status(401).json({ message: "Invalid refresh token" });
+  }
+};
 export const forgotPassword = () => {};
 export const resetPassword = () => {};
 export const me = () => {};
