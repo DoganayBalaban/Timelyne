@@ -9,4 +9,6 @@ export const env = {
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || "",
   NODE_ENV: process.env.NODE_ENV || "development",
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
+  REDIS_HOST: process.env.REDIS_HOST || "",
+  REDIS_PORT: process.env.REDIS_PORT || "",
 };
