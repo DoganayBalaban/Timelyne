@@ -3,9 +3,9 @@ import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import path from "path";
 import { connectDatabase } from "./config/db";
 import { env } from "./config/env";
+import morganMiddleware from "./middlewares/morganMiddleware";
 import authRoute from "./routes/authRoute";
 
 const app = express();
@@ -36,7 +36,7 @@ app.use(
   })
 );
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(morganMiddleware);
 app.use("/api/auth", authRoute);
 
 async function startServer() {
