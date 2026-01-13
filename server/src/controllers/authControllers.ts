@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
+import { AuthRequest } from "../middlewares/authMiddleware";
 import { prisma } from "../utils/prisma";
 import { setTokenCookies } from "../utils/setTokenCookies";
 import { loginUserSchema, registerUserSchema } from "../validators/userSchema";
@@ -92,9 +93,10 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = parseResult.data;
 
     // Find user with password_hash for comparison
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: {
         email,
+        deleted_at: null, // Soft delete kontrolü
       },
     });
 
@@ -154,21 +156,41 @@ export const login = async (req: Request, res: Response) => {
 };
 export const logout = async (req: Request, res: Response) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies?.refreshToken;
+
     if (refreshToken) {
-      await prisma.refreshToken.deleteMany({
+      // Revoke refresh token instead of deleting (better for audit)
+      await prisma.refreshToken.updateMany({
         where: {
           token: refreshToken,
+          revoked_at: null,
+        },
+        data: {
+          revoked_at: new Date(),
         },
       });
     }
+
+    const isProduction = env.NODE_ENV === "production";
+
+    // Clear both cookies
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "strict" : "lax",
+    });
+
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: true,
-      sameSite: "strict",
+      secure: isProduction,
+      sameSite: isProduction ? "strict" : "lax",
     });
-    res.json({ message: "Logged out successfully" });
-  } catch (error) {}
+
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error: any) {
+    console.error("❌ Logout error:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 export const refresh = async (req: Request, res: Response) => {
   try {
@@ -208,8 +230,37 @@ export const refresh = async (req: Request, res: Response) => {
       { expiresIn: "15m" }
     );
 
-    // Yeni access token'ı cookie'ye yaz
-    setTokenCookies(res, newAccessToken, refreshToken);
+    // Refresh Token Rotation: Her refresh'te yeni refresh token üret
+    const newRefreshToken = jwt.sign(
+      { userId: payload.userId },
+      env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Eski refresh token'ı revoke et
+    await prisma.refreshToken.update({
+      where: {
+        id: savedToken.id,
+      },
+      data: {
+        revoked_at: new Date(),
+      },
+    });
+
+    // Yeni refresh token'ı kaydet
+    const newExpiresAt = new Date();
+    newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+
+    await prisma.refreshToken.create({
+      data: {
+        user_id: payload.userId,
+        token: newRefreshToken,
+        expires_at: newExpiresAt,
+      },
+    });
+
+    // Yeni token'ları cookie'ye yaz
+    setTokenCookies(res, newAccessToken, newRefreshToken);
 
     return res.status(200).json({ message: "Token refreshed successfully" });
   } catch (error: any) {
@@ -219,5 +270,95 @@ export const refresh = async (req: Request, res: Response) => {
 };
 export const forgotPassword = () => {};
 export const resetPassword = () => {};
-export const me = () => {};
-export const updateMe = () => {};
+export const me = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: req.user.id,
+        deleted_at: null, // Soft delete kontrolü
+      },
+      select: {
+        id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+        avatar_url: true,
+        timezone: true,
+        currency: true,
+        hourly_rate: true,
+        plan: true,
+        plan_expires_at: true,
+        email_verified: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ user });
+  } catch (error: any) {
+    console.error("❌ Get user error:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateMe = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // TODO: UpdateMe için Zod schema oluştur
+    const {
+      first_name,
+      last_name,
+      timezone,
+      currency,
+      hourly_rate,
+      avatar_url,
+    } = req.body;
+
+    const user = await prisma.user.update({
+      where: {
+        id: req.user.id,
+        deleted_at: null, // Soft delete kontrolü
+      },
+      data: {
+        ...(first_name !== undefined && { first_name }),
+        ...(last_name !== undefined && { last_name }),
+        ...(timezone !== undefined && { timezone }),
+        ...(currency !== undefined && { currency }),
+        ...(hourly_rate !== undefined && { hourly_rate }),
+        ...(avatar_url !== undefined && { avatar_url }),
+      },
+      select: {
+        id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+        avatar_url: true,
+        timezone: true,
+        currency: true,
+        hourly_rate: true,
+        plan: true,
+        plan_expires_at: true,
+        email_verified: true,
+        updated_at: true,
+      },
+    });
+
+    res.status(200).json({ message: "User updated successfully", user });
+  } catch (error: any) {
+    console.error("❌ Update user error:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

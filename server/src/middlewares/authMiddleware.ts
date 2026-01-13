@@ -41,9 +41,10 @@ export const protect = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: {
         id: decoded.userId,
+        deleted_at: null, // Soft delete kontrolü
       },
       select: {
         id: true,
