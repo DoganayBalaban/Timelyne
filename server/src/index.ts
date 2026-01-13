@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { connectDatabase } from "./config/db";
 import { env } from "./config/env";
+import { globalErrorHandler } from "./middlewares/errorMiddleware";
 import morganMiddleware from "./middlewares/morganMiddleware";
 import authRoute from "./routes/authRoute";
 import logger from "./utils/logger";
@@ -38,7 +39,7 @@ app.use(
 
 app.use(morganMiddleware);
 app.use("/api/auth", authRoute);
-
+app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();
 
