@@ -1,0 +1,26 @@
+import { Response } from "express";
+import { env } from "../config/env";
+
+export const setTokenCookies = (
+  res: Response,
+  accessToken: string,
+  refreshToken: string
+) => {
+  const isProduction = env.NODE_ENV === "production";
+
+  // Access token cookie (15 minutes)
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: isProduction, // HTTPS only in production
+    sameSite: isProduction ? "strict" : "lax",
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+
+  // Refresh token cookie (7 days)
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: isProduction, // HTTPS only in production
+    sameSite: isProduction ? "strict" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+};

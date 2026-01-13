@@ -9,16 +9,23 @@ import {
   resetPassword,
   updateMe,
 } from "../controllers/authControllers";
+import { protect } from "../middlewares/authMiddleware";
+import {
+  loginLimiter,
+  passwordResetLimiter,
+  refreshLimiter,
+  registerLimiter,
+} from "../middlewares/rateLimiter";
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
+router.post("/register", registerLimiter, register);
+router.post("/login", loginLimiter, login);
 router.post("/logout", logout);
-router.post("/refresh", refresh);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
-router.get("/me", me);
-router.patch("/me", updateMe);
+router.post("/refresh", refreshLimiter, refresh);
+router.post("/forgot-password", passwordResetLimiter, forgotPassword);
+router.post("/reset-password", passwordResetLimiter, resetPassword);
+router.get("/me", protect, me);
+router.patch("/me", protect, updateMe);
 
 export default router;
