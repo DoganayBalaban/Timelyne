@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import logger from "../utils/logger";
 import { prisma } from "../utils/prisma";
 import { setTokenCookies } from "../utils/setTokenCookies";
 import { loginUserSchema, registerUserSchema } from "../validators/userSchema";
@@ -69,11 +70,22 @@ export const register = async (req: Request, res: Response) => {
 
     setTokenCookies(res, accessToken, refreshToken);
 
+    logger.info("User registered successfully", {
+      userId: user.id,
+      email: user.email,
+      ip: req.ip,
+    });
+
     res.status(201).json({
       message: "User created successfully",
     });
   } catch (error: any) {
-    console.error("❌ User registration error:", error.message);
+    logger.error("User registration error", {
+      error: error.message,
+      stack: error.stack,
+      email: req.body?.email,
+      ip: req.ip,
+    });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -146,11 +158,22 @@ export const login = async (req: Request, res: Response) => {
     // Set httpOnly cookies
     setTokenCookies(res, accessToken, refreshToken);
 
+    logger.info("User logged in successfully", {
+      userId: user.id,
+      email: user.email,
+      ip: req.ip,
+    });
+
     res.status(200).json({
       message: "User login successfully",
     });
   } catch (error: any) {
-    console.error("❌ User login error:", error.message);
+    logger.error("User login error", {
+      error: error.message,
+      stack: error.stack,
+      email: req.body?.email,
+      ip: req.ip,
+    });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -186,15 +209,25 @@ export const logout = async (req: Request, res: Response) => {
       sameSite: isProduction ? "strict" : "lax",
     });
 
+    logger.info("User logged out successfully", {
+      ip: req.ip,
+      hadRefreshToken: !!refreshToken,
+    });
+
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error: any) {
-    console.error("❌ Logout error:", error.message);
+    logger.error("Logout error", {
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip,
+    });
     res.status(500).json({ message: "Internal server error" });
   }
 };
 export const refresh = async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+
   try {
-    const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken) {
       return res.status(401).json({ message: "Refresh token missing" });
     }
@@ -262,9 +295,19 @@ export const refresh = async (req: Request, res: Response) => {
     // Yeni token'ları cookie'ye yaz
     setTokenCookies(res, newAccessToken, newRefreshToken);
 
+    logger.info("Token refreshed successfully", {
+      userId: payload.userId,
+      ip: req.ip,
+    });
+
     return res.status(200).json({ message: "Token refreshed successfully" });
   } catch (error: any) {
-    console.error("❌ Token refresh error:", error.message);
+    logger.error("Token refresh error", {
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip,
+      hasRefreshToken: !!refreshToken,
+    });
     return res.status(401).json({ message: "Invalid refresh token" });
   }
 };
@@ -300,16 +343,29 @@ export const me = async (req: AuthRequest, res: Response) => {
     });
 
     if (!user) {
+      logger.warn("User not found in me endpoint", {
+        userId: req.user.id,
+        ip: req.ip,
+      });
       return res.status(404).json({ message: "User not found" });
     }
 
+    logger.debug("User profile retrieved", {
+      userId: user.id,
+      ip: req.ip,
+    });
+
     res.status(200).json({ user });
   } catch (error: any) {
-    console.error("❌ Get user error:", error.message);
+    logger.error("Get user error", {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.id,
+      ip: req.ip,
+    });
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 export const updateMe = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user?.id) {
@@ -356,9 +412,20 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    logger.info("User updated successfully", {
+      userId: user.id,
+      updatedFields: Object.keys(req.body),
+      ip: req.ip,
+    });
+
     res.status(200).json({ message: "User updated successfully", user });
   } catch (error: any) {
-    console.error("❌ Update user error:", error.message);
+    logger.error("Update user error", {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.id,
+      ip: req.ip,
+    });
     res.status(500).json({ message: "Internal server error" });
   }
 };
