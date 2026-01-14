@@ -4,109 +4,29 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { AuthService } from "../services/authService";
+import { catchAsync } from "../utils/catchAsync";
 import { sendEmail } from "../utils/email";
 import logger from "../utils/logger";
 import { prisma } from "../utils/prisma";
 import { setTokenCookies } from "../utils/setTokenCookies";
-import { loginUserSchema, registerUserSchema } from "../validators/userSchema";
+import { loginUserSchema, registerUserSchema, updateMeSchema } from "../validators/userSchema";
 const BCRYPT_ROUNDS = 12;
 
 
-export const register = async (req: Request, res: Response) => {
-  try {
-    const parseResult = registerUserSchema.safeParse(req.body);
+export const register = catchAsync(async (req: Request, res: Response) => {
+  const validatedData = registerUserSchema.parse(req.body);
 
-    if (!parseResult.success) {
-      return res.status(400).json({
-        message: "Validation error",
-        errors: parseResult.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message,
-        })),
-      });
-    }
+  const { user, accessToken, refreshToken } = await AuthService.registerUser(validatedData);
 
-    const { email, password, firstName, lastName } = parseResult.data;
-
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const { user, accessToken, refreshToken } = await prisma.$transaction(
-      async (tx) => {
-        // Create user without password_hash in response
-        const user = await tx.user.create({
-          data: {
-            email,
-            password_hash: hashedPassword,
-            first_name: firstName,
-            last_name: lastName,
-          },
-        });
-
-        // Generate tokens with separate secrets
-        const accessToken = jwt.sign(
-          { userId: user.id },
-          env.JWT_ACCESS_SECRET,
-          {
-            expiresIn: "15m",
-          }
-        );
-
-        const refreshToken = jwt.sign(
-          { userId: user.id },
-          env.JWT_REFRESH_SECRET,
-          {
-            expiresIn: "7d",
-          }
-        );
-
-        // Calculate expiration date (7 days from now)
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
-
-        // Save refresh token to database
-        await tx.refreshToken.create({
-          data: {
-            user_id: user.id,
-            token: refreshToken,
-            expires_at: expiresAt,
-          },
-        });
-
-        return { user, accessToken, refreshToken };
-      }
-    );
-
-    setTokenCookies(res, accessToken, refreshToken);
-
-    logger.info("User registered successfully", {
-      userId: user.id,
-      email: user.email,
-      ip: req.ip,
-    });
-
-    res.status(201).json({
-      message: "User created successfully",
-    });
-  } catch (error: any) {
-    logger.error("User registration error", {
-      error: error.message,
-      stack: error.stack,
-      email: req.body?.email,
-      ip: req.ip,
-    });
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
+  setTokenCookies(res, accessToken, refreshToken);
+  
+  res.status(201).json({
+    status: "success",
+    message: "User created successfully",
+    user: { id: user.id, email: user.email }
+  });
+});
 export const login = async (req: Request, res: Response) => {
   try {
     const parseResult = loginUserSchema.safeParse(req.body);
@@ -491,8 +411,18 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     if (!req.user?.id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+     const parseResult = updateMeSchema.safeParse(req.body);
 
-    // TODO: UpdateMe için Zod schema oluştur
+    if (!parseResult.success) {
+      return res.status(400).json({
+        message: "Validation error",
+        errors: parseResult.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+    }
+ 
     const {
       first_name,
       last_name,
@@ -500,7 +430,7 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
       currency,
       hourly_rate,
       avatar_url,
-    } = req.body;
+    } = parseResult.data;
 
     const user = await prisma.user.update({
       where: {

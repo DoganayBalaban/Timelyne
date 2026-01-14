@@ -33,3 +33,14 @@ export const loginUserSchema = z.object({
 });
 
 export type LoginUserInput = z.infer<typeof loginUserSchema>;
+
+export const updateMeSchema = z.object({
+  first_name: z.string().min(2).optional(),
+  last_name: z.string().min(2).optional(),
+  timezone: z.string().optional(),
+  currency: z.string().length(3).optional(),
+  hourly_rate: z.number().positive().optional(),
+  avatar_url: z.string().url().optional(),
+});
+
+export type UpdateMeInput = z.infer<typeof updateMeSchema>;
