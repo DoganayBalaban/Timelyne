@@ -10,6 +10,8 @@ import logger from "../utils/logger";
 import { prisma } from "../utils/prisma";
 import { setTokenCookies } from "../utils/setTokenCookies";
 import { loginUserSchema, registerUserSchema } from "../validators/userSchema";
+const BCRYPT_ROUNDS = 12;
+
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -36,7 +38,7 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user without password_hash in response
@@ -386,7 +388,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       // Don't throw AppError here if we aren't handling it in catch, or handle it manually
       return res.status(400).json({ message: "Invalid or expired token" });
     }
-    const salt = await bcrypt.genSalt(12);
+    const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     await prisma.user.update({
