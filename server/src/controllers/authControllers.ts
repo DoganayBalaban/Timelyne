@@ -364,7 +364,51 @@ export const forgotPassword = async (req:Request,res:Response) => {
     
   }
 };
-export const resetPassword = () => {};
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ message: "Invalid or missing token" });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await prisma.user.findUnique({
+      where: {
+        password_reset_token: hashedToken,
+        password_reset_expires: {
+          gte: new Date(),
+        },
+      },
+    });
+    if (!user) {
+      // Don't throw AppError here if we aren't handling it in catch, or handle it manually
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password_hash: hashedPassword,
+        password_reset_token: null,
+        password_reset_expires: null,
+      },
+    });
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error: any) {
+    logger.error("Reset password error", {
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip,
+    });
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 export const me = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user?.id) {
