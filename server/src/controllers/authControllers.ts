@@ -1,12 +1,17 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { AppError } from "../utils/appError";
+import { sendEmail } from "../utils/email";
 import logger from "../utils/logger";
 import { prisma } from "../utils/prisma";
 import { setTokenCookies } from "../utils/setTokenCookies";
 import { loginUserSchema, registerUserSchema } from "../validators/userSchema";
+const BCRYPT_ROUNDS = 12;
+
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -33,7 +38,7 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user without password_hash in response
@@ -311,8 +316,101 @@ export const refresh = async (req: Request, res: Response) => {
     return res.status(401).json({ message: "Invalid refresh token" });
   }
 };
-export const forgotPassword = () => {};
-export const resetPassword = () => {};
+export const forgotPassword = async (req:Request,res:Response) => {
+  try {
+    const {email} = req.body;
+    const user = await prisma.user.findUnique({
+      where:{
+        email,
+        deleted_at:null
+      }
+    })
+    if (!user) {
+      throw new AppError("User not found",404)
+    }
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    await prisma.user.update({
+      where:{
+        id:user.id
+      },
+      data:{
+        password_reset_token:hashedToken,
+        password_reset_expires:new Date(Date.now() + 15 * 60 * 1000)
+      }
+    })
+    const resetURL = `${env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const emailHtml = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto;">
+      <h2>Şifre Sıfırlama Talebi</h2>
+      <p>Şifrenizi sıfırlamak için aşağıdaki butona tıklayın:</p>
+      <a href="${resetURL}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Şifremi Sıfırla</a>
+      <p>Eğer bu talebi siz yapmadıysanız, bu e-postayı dikkate almayın.</p>
+      <p>Bu bağlantı 1 saat içinde geçerliliğini yitirecektir.</p>
+    </div>
+  `;
+    await sendEmail({
+      to: user.email,
+      subject: "Şifre Sıfırlama Talebi",
+      html: emailHtml,
+    });
+    return res.status(200).json({ message: "Password reset email sent" });
+  } catch (error:any) {
+    logger.error("Password reset error", {
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip,
+    });
+    return res.status(500).json({ message: "Internal server error" });
+    
+  }
+};
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ message: "Invalid or missing token" });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await prisma.user.findUnique({
+      where: {
+        password_reset_token: hashedToken,
+        password_reset_expires: {
+          gte: new Date(),
+        },
+      },
+    });
+    if (!user) {
+      // Don't throw AppError here if we aren't handling it in catch, or handle it manually
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password_hash: hashedPassword,
+        password_reset_token: null,
+        password_reset_expires: null,
+      },
+    });
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error: any) {
+    logger.error("Reset password error", {
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip,
+    });
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 export const me = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user?.id) {
