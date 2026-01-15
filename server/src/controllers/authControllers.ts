@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { BCRYPT_ROUNDS } from "../config/constants";
 import { env } from "../config/env";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { AuthService } from "../services/authService";
@@ -11,8 +12,6 @@ import logger from "../utils/logger";
 import { prisma } from "../utils/prisma";
 import { setTokenCookies } from "../utils/setTokenCookies";
 import { loginUserSchema, registerUserSchema, updateMeSchema } from "../validators/userSchema";
-const BCRYPT_ROUNDS = 12;
-
 
 export const register = catchAsync(async (req: Request, res: Response) => {
   const validatedData = registerUserSchema.parse(req.body);
@@ -27,94 +26,19 @@ export const register = catchAsync(async (req: Request, res: Response) => {
     user: { id: user.id, email: user.email }
   });
 });
-export const login = async (req: Request, res: Response) => {
-  try {
-    const parseResult = loginUserSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return res.status(400).json({
-        message: "Validation error",
-        errors: parseResult.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message,
-        })),
-      });
-    }
+export const login = catchAsync(async (req: Request, res: Response) => {
+  const validatedData = loginUserSchema.parse(req.body);
 
-    const { email, password } = parseResult.data;
+  const { user, accessToken, refreshToken } = await AuthService.loginUser(validatedData);
 
-    // Find user with password_hash for comparison
-    const user = await prisma.user.findFirst({
-      where: {
-        email,
-        deleted_at: null, // Soft delete kontrolü
-      },
-    });
+  setTokenCookies(res, accessToken, refreshToken);
 
-    if (!user) {
-      // Use same error message to prevent user enumeration
-      return res.status(401).json({ message: "Invalid Credentials" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid Credentials" });
-    }
-
-    // Generate tokens with separate secrets
-    const accessToken = jwt.sign({ userId: user.id }, env.JWT_ACCESS_SECRET, {
-      expiresIn: "15m",
-    });
-
-    const refreshToken = jwt.sign({ userId: user.id }, env.JWT_REFRESH_SECRET, {
-      expiresIn: "7d",
-    });
-
-    // Calculate expiration date (7 days from now)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    // Revoke all existing refresh tokens for this user (optional: for better security)
-    await prisma.refreshToken.updateMany({
-      where: {
-        user_id: user.id,
-        revoked_at: null,
-      },
-      data: {
-        revoked_at: new Date(),
-      },
-    });
-
-    // Save new refresh token to database
-    await prisma.refreshToken.create({
-      data: {
-        user_id: user.id,
-        token: refreshToken,
-        expires_at: expiresAt,
-      },
-    });
-
-    // Set httpOnly cookies
-    setTokenCookies(res, accessToken, refreshToken);
-
-    logger.info("User logged in successfully", {
-      userId: user.id,
-      email: user.email,
-      ip: req.ip,
-    });
-
-    res.status(200).json({
-      message: "User login successfully",
-    });
-  } catch (error: any) {
-    logger.error("User login error", {
-      error: error.message,
-      stack: error.stack,
-      email: req.body?.email,
-      ip: req.ip,
-    });
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
+  res.status(200).json({
+    status: "success",
+    message: "User logged in successfully",
+    user: { id: user.id, email: user.email }
+  });
+});
 export const logout = async (req: Request, res: Response) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
@@ -323,7 +247,6 @@ export const resetPassword = async (req: Request, res: Response) => {
       },
     });
     if (!user) {
-      // Don't throw AppError here if we aren't handling it in catch, or handle it manually
       return res.status(400).json({ message: "Invalid or expired token" });
     }
     const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);

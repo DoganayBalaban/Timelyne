@@ -33,6 +33,41 @@ export class AuthService {
       return { user, accessToken, refreshToken };
     });
     }
+    static async loginUser(data:{email:string,password:string}){
+        const user = await prisma.user.findFirst({
+            where:{
+                email:data.email,
+                deleted_at:null
+            }
+        })
+        if(!user){
+            throw new AppError("Invalid credentials",401)
+        }
+        const isMatch = await bcrypt.compare(data.password,user.password_hash)
+        if(!isMatch){
+            throw new AppError("Invalid credentials",401)
+        }
+        const { accessToken, refreshToken } = this.generateTokens(user.id);
+        await prisma.$transaction(async(tx)=>{
+            await tx.refreshToken.updateMany({
+                where:{
+                    user_id:user.id,
+                    revoked_at:null
+                },
+                data:{
+                    revoked_at:new Date()
+                }
+            }),
+            await tx.refreshToken.create({
+                data:{
+                    user_id:user.id,
+                    token:refreshToken,
+                    expires_at:new Date(Date.now() + 7*24*60*60*1000)
+                }
+            })
+        })
+        return {user,accessToken,refreshToken}
+    }
     static generateTokens(userId: string) {
     const accessToken = jwt.sign({ userId }, env.JWT_ACCESS_SECRET, { expiresIn: "15m" });
     const refreshToken = jwt.sign({ userId }, env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
@@ -46,4 +81,4 @@ export class AuthService {
       data: { user_id: userId, token, expires_at: expiresAt },
     });
   }
-}
+}            
