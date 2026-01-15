@@ -40,13 +40,9 @@ export class AuthService {
                 deleted_at:null
             }
         })
-        if(!user){
-            throw new AppError("Invalid credentials",401)
-        }
-        const isMatch = await bcrypt.compare(data.password,user.password_hash)
-        if(!isMatch){
-            throw new AppError("Invalid credentials",401)
-        }
+        if (!user || !(await bcrypt.compare(data.password, user.password_hash))) {
+      throw new AppError("Invalid credentials", 401);
+    }
         const { accessToken, refreshToken } = this.generateTokens(user.id);
         await prisma.$transaction(async(tx)=>{
             await tx.refreshToken.updateMany({
@@ -72,13 +68,24 @@ export class AuthService {
     const accessToken = jwt.sign({ userId }, env.JWT_ACCESS_SECRET, { expiresIn: "15m" });
     const refreshToken = jwt.sign({ userId }, env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
     return { accessToken, refreshToken };
-  }
-  static async saveRefreshToken(tx: any, userId: string, token: string) {
+    }
+    static async saveRefreshToken(tx: any, userId: string, token: string) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     await tx.refreshToken.create({
       data: { user_id: userId, token, expires_at: expiresAt },
+    });
+    }
+   static async logoutUser(refreshToken: string) {
+    await prisma.refreshToken.updateMany({
+      where: {
+        token: refreshToken,
+        revoked_at: null,
+      },
+      data: {
+        revoked_at: new Date(),
+      },
     });
   }
 }            

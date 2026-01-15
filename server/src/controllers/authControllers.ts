@@ -39,53 +39,25 @@ export const login = catchAsync(async (req: Request, res: Response) => {
     user: { id: user.id, email: user.email }
   });
 });
-export const logout = async (req: Request, res: Response) => {
-  try {
-    const refreshToken = req.cookies?.refreshToken;
-
-    if (refreshToken) {
-      // Revoke refresh token instead of deleting (better for audit)
-      await prisma.refreshToken.updateMany({
-        where: {
-          token: refreshToken,
-          revoked_at: null,
-        },
-        data: {
-          revoked_at: new Date(),
-        },
-      });
-    }
-
-    const isProduction = env.NODE_ENV === "production";
-
-    // Clear both cookies
-    res.clearCookie("accessToken", {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
-    });
-
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
-    });
-
-    logger.info("User logged out successfully", {
-      ip: req.ip,
-      hadRefreshToken: !!refreshToken,
-    });
-
-    res.status(200).json({ message: "Logged out successfully" });
-  } catch (error: any) {
-    logger.error("Logout error", {
-      error: error.message,
-      stack: error.stack,
-      ip: req.ip,
-    });
-    res.status(500).json({ message: "Internal server error" });
+export const logout = catchAsync(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+  
+  if (refreshToken) {
+    await AuthService.logoutUser(refreshToken);
   }
-};
+
+  const isProd = env.NODE_ENV === "production";
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? "strict" : "lax") as any,
+  };
+
+  res.clearCookie("refreshToken", cookieOptions);
+  res.clearCookie("accessToken", cookieOptions);
+
+  res.status(200).json({ status: "success", message: "Logged out successfully" });
+});
 export const refresh = async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
 
