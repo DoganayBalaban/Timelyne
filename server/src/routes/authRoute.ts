@@ -6,8 +6,10 @@ import {
   me,
   refresh,
   register,
+  resendVerificationEmail,
   resetPassword,
   updateMe,
+  verifyEmail,
 } from "../controllers/authControllers";
 import { protect } from "../middlewares/authMiddleware";
 import {
@@ -27,5 +29,7 @@ router.post("/forgot-password", passwordResetLimiter, forgotPassword);
 router.post("/reset-password", passwordResetLimiter, resetPassword);
 router.get("/me", protect, me);
 router.patch("/me", protect, updateMe);
+router.get("/verify-email/:token", verifyEmail);
+router.post("/resend-verification", resendVerificationEmail);
 
 export default router;
