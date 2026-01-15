@@ -1,10 +1,8 @@
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { Request, Response } from "express";
-import { BCRYPT_ROUNDS } from "../config/constants";
 import { env } from "../config/env";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { AuthService } from "../services/authService";
+import { AppError } from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import { sendEmail } from "../utils/email";
 import logger from "../utils/logger";
@@ -98,54 +96,21 @@ export const forgotPassword = catchAsync(async (req: Request, res: Response) => 
     message: "If an account exists, a reset email has been sent"
   });
 });
-export const resetPassword = async (req: Request, res: Response) => {
-  try {
-    const { token } = req.params;
-    const { password } = req.body;
+export const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const { token } = req.params;
+  const { password } = req.body;
 
-    if (!token || typeof token !== "string") {
-      return res.status(400).json({ message: "Invalid or missing token" });
-    }
-
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-    const user = await prisma.user.findUnique({
-      where: {
-        password_reset_token: hashedToken,
-        password_reset_expires: {
-          gte: new Date(),
-        },
-      },
-    });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid or expired token" });
-    }
-    const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    await prisma.user.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        password_hash: hashedPassword,
-        password_reset_token: null,
-        password_reset_expires: null,
-      },
-    });
-    await prisma.refreshToken.updateMany({
-      where: { user_id: user.id, revoked_at: null },
-      data: { revoked_at: new Date() },
-    });
-    return res.status(200).json({ message: "Password reset successfully" });
-  } catch (error: any) {
-    logger.error("Reset password error", {
-      error: error.message,
-      stack: error.stack,
-      ip: req.ip,
-    });
-    return res.status(500).json({ message: "Internal server error" });
+  if (!token || typeof token !== "string") {
+    throw new AppError("Invalid or missing token", 400);
   }
-};
+
+  await AuthService.resetPassword(token, password);
+
+  res.status(200).json({
+    status: "success",
+    message: "Password reset successfully"
+  });
+});
 export const me = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user?.id) {

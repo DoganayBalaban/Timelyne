@@ -178,4 +178,43 @@ export class AuthService {
     
     return { emailSent: true, resetURL, userEmail: user.email };
   }
+  static async resetPassword(token: string, password: string) {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    
+    const user = await prisma.user.findUnique({
+      where: {
+        password_reset_token: hashedToken,
+        password_reset_expires: {
+          gte: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppError("Invalid or expired token", 400);
+    }
+
+    const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Use transaction to update password and revoke tokens atomically
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          password_hash: hashedPassword,
+          password_reset_token: null,
+          password_reset_expires: null,
+        },
+      });
+
+      // Revoke all refresh tokens for security
+      await tx.refreshToken.updateMany({
+        where: { user_id: user.id, revoked_at: null },
+        data: { revoked_at: new Date() },
+      });
+    });
+  }
 }
