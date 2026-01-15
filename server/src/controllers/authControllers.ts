@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import { BCRYPT_ROUNDS } from "../config/constants";
 import { env } from "../config/env";
 import { AuthRequest } from "../middlewares/authMiddleware";
@@ -58,93 +57,18 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
 
   res.status(200).json({ status: "success", message: "Logged out successfully" });
 });
-export const refresh = async (req: Request, res: Response) => {
+export const refresh = catchAsync(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
 
-  try {
-    if (!refreshToken) {
-      return res.status(401).json({ message: "Refresh token missing" });
-    }
-    const savedToken = await prisma.refreshToken.findUnique({
-      where: {
-        token: refreshToken,
-      },
-      include: {
-        user: true,
-      },
-    });
-    if (
-      !savedToken ||
-      savedToken.expires_at < new Date() ||
-      savedToken.revoked_at
-    ) {
-      return res
-        .status(403)
-        .json({ message: "Invalid or expired refresh token" });
-    }
-    const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as {
-      userId: string;
-    };
+  const { accessToken, refreshToken: newRefreshToken } = await AuthService.refreshToken(refreshToken);
 
-    // Ek güvenlik: token içindeki userId ile DB'deki user_id eşleşmeli
-    if (payload.userId !== savedToken.user_id) {
-      return res.status(403).json({ message: "Invalid refresh token" });
-    }
+  setTokenCookies(res, accessToken, newRefreshToken);
 
-    const newAccessToken = jwt.sign(
-      { userId: payload.userId },
-      env.JWT_ACCESS_SECRET,
-      { expiresIn: "15m" }
-    );
-
-    // Refresh Token Rotation: Her refresh'te yeni refresh token üret
-    const newRefreshToken = jwt.sign(
-      { userId: payload.userId },
-      env.JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // Eski refresh token'ı revoke et
-    await prisma.refreshToken.update({
-      where: {
-        id: savedToken.id,
-      },
-      data: {
-        revoked_at: new Date(),
-      },
-    });
-
-    // Yeni refresh token'ı kaydet
-    const newExpiresAt = new Date();
-    newExpiresAt.setDate(newExpiresAt.getDate() + 7);
-
-    await prisma.refreshToken.create({
-      data: {
-        user_id: payload.userId,
-        token: newRefreshToken,
-        expires_at: newExpiresAt,
-      },
-    });
-
-    // Yeni token'ları cookie'ye yaz
-    setTokenCookies(res, newAccessToken, newRefreshToken);
-
-    logger.info("Token refreshed successfully", {
-      userId: payload.userId,
-      ip: req.ip,
-    });
-
-    return res.status(200).json({ message: "Token refreshed successfully" });
-  } catch (error: any) {
-    logger.error("Token refresh error", {
-      error: error.message,
-      stack: error.stack,
-      ip: req.ip,
-      hasRefreshToken: !!refreshToken,
-    });
-    return res.status(401).json({ message: "Invalid refresh token" });
-  }
-};
+  res.status(200).json({
+    status: "success",
+    message: "Token refreshed successfully"
+  });
+});
 export const forgotPassword = async (req:Request,res:Response) => {
   try {
     const {email} = req.body;

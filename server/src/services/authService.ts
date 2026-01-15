@@ -77,7 +77,7 @@ export class AuthService {
       data: { user_id: userId, token, expires_at: expiresAt },
     });
     }
-   static async logoutUser(refreshToken: string) {
+    static async logoutUser(refreshToken: string) {
     await prisma.refreshToken.updateMany({
       where: {
         token: refreshToken,
@@ -88,4 +88,62 @@ export class AuthService {
       },
     });
   }
-}            
+    static async refreshToken(token: string) {
+    if (!token) {
+      throw new AppError("Refresh token missing", 401);
+    }
+
+    const savedToken = await prisma.refreshToken.findUnique({
+      where: {
+        token,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (
+      !savedToken ||
+      savedToken.expires_at < new Date() ||
+      savedToken.revoked_at
+    ) {
+      throw new AppError("Invalid or expired refresh token", 403);
+    }
+
+    const payload = jwt.verify(token, env.JWT_REFRESH_SECRET) as {
+      userId: string;
+    };
+
+    // Extra security: token userId must match DB user_id
+    if (payload.userId !== savedToken.user_id) {
+      throw new AppError("Invalid refresh token", 403);
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(payload.userId);
+
+    // Refresh Token Rotation: revoke old token and create new one in transaction
+    await prisma.$transaction(async (tx) => {
+      await tx.refreshToken.update({
+        where: {
+          id: savedToken.id,
+        },
+        data: {
+          revoked_at: new Date(),
+        },
+      });
+
+      const newExpiresAt = new Date();
+      newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+
+      await tx.refreshToken.create({
+        data: {
+          user_id: payload.userId,
+          token: newRefreshToken,
+          expires_at: newExpiresAt,
+        },
+      });
+    });
+
+    return { accessToken, refreshToken: newRefreshToken, userId: payload.userId };
+  }
+}
