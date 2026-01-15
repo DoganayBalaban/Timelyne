@@ -16,6 +16,8 @@ export class AuthService {
         if(existingUser){
             throw new AppError("User already exists",400)
         }
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const hashedToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
         const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
         const hashedPassword = await bcrypt.hash(data.password, salt);
         return await prisma.$transaction(async (tx) => {
@@ -25,13 +27,15 @@ export class AuthService {
           password_hash: hashedPassword,
           first_name: data.firstName,
           last_name: data.lastName,
+          verification_token: hashedToken,
+          verification_token_expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         },
       });
 
       const { accessToken, refreshToken } = this.generateTokens(user.id);
       await this.saveRefreshToken(tx, user.id, refreshToken);
 
-      return { user, accessToken, refreshToken };
+      return { user, accessToken, refreshToken, verificationToken };
     });
     }
     static async loginUser(data:{email:string,password:string}){
@@ -288,5 +292,62 @@ export class AuthService {
     });
 
     return user;
+  }
+
+  static async verifyEmail(token: string) {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await prisma.user.findFirst({
+      where: {
+        verification_token: hashedToken,
+        verification_token_expires: {
+          gte: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppError("Geçersiz veya süresi dolmuş doğrulama linki.", 400);
+    }
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        email_verified: true,
+        verification_token: null,
+        verification_token_expires: null,
+      },
+    });
+  }
+
+  static async resendVerificationEmail(email: string) {
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+        deleted_at: null,
+      },
+    });
+
+    // Return false if user doesn't exist or is already verified (prevent user enumeration)
+    if (!user || user.email_verified) {
+      return { emailSent: false };
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        verification_token: hashedToken,
+        verification_token_expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      },
+    });
+
+    return { emailSent: true, verificationToken, userEmail: user.email };
   }
 }

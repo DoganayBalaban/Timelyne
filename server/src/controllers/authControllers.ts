@@ -11,13 +11,32 @@ import { loginUserSchema, registerUserSchema, updateMeSchema } from "../validato
 export const register = catchAsync(async (req: Request, res: Response) => {
   const validatedData = registerUserSchema.parse(req.body);
 
-  const { user, accessToken, refreshToken } = await AuthService.registerUser(validatedData);
+  const { user, accessToken, refreshToken, verificationToken } = await AuthService.registerUser(validatedData);
+
+  // Send verification email
+  const verificationURL = `${env.FRONTEND_URL}/verify-email/${verificationToken}`;
+  const emailHtml = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto;">
+      <h2>Hesabınızı Doğrulayın</h2>
+      <p>Merhaba ${user.first_name || 'Kullanıcı'},</p>
+      <p>Hesabınızı aktifleştirmek için aşağıdaki butona tıklayın:</p>
+      <a href="${verificationURL}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Hesabımı Doğrula</a>
+      <p>Bu bağlantı 24 saat içinde geçerliliğini yitirecektir.</p>
+      <p>Eğer bu hesabı siz oluşturmadıysanız, bu e-postayı dikkate almayın.</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: user.email,
+    subject: "Hesabınızı Doğrulayın",
+    html: emailHtml,
+  });
 
   setTokenCookies(res, accessToken, refreshToken);
   
   res.status(201).json({
     status: "success",
-    message: "User created successfully",
+    message: "User created successfully. Please check your email to verify your account.",
     user: { id: user.id, email: user.email }
   });
 });
@@ -136,5 +155,55 @@ export const updateMe = catchAsync(async (req: AuthRequest, res: Response) => {
     status: "success",
     message: "User updated successfully",
     user
+  });
+});
+
+export const verifyEmail = catchAsync(async (req: Request, res: Response) => {
+  const { token } = req.params;
+
+  if (!token || typeof token !== "string") {
+    throw new AppError("Invalid or missing token", 400);
+  }
+
+  await AuthService.verifyEmail(token);
+
+  res.status(200).json({
+    status: "success",
+    message: "Email verified successfully"
+  });
+});
+
+export const resendVerificationEmail = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email || typeof email !== "string") {
+    throw new AppError("Email is required", 400);
+  }
+
+  const result = await AuthService.resendVerificationEmail(email);
+
+  if (result.emailSent) {
+    const verificationURL = `${env.FRONTEND_URL}/verify-email/${result.verificationToken}`;
+    const emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: auto;">
+        <h2>Hesabınızı Doğrulayın</h2>
+        <p>Doğrulama e-postanızı yeniden gönderdiniz.</p>
+        <p>Hesabınızı aktifleştirmek için aşağıdaki butona tıklayın:</p>
+        <a href="${verificationURL}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Hesabımı Doğrula</a>
+        <p>Bu bağlantı 24 saat içinde geçerliliğini yitirecektir.</p>
+      </div>
+    `;
+
+    await sendEmail({
+      to: result.userEmail!,
+      subject: "Hesabınızı Doğrulayın",
+      html: emailHtml,
+    });
+  }
+
+  // Always return success to prevent user enumeration
+  res.status(200).json({
+    status: "success",
+    message: "If an unverified account exists, a verification email has been sent"
   });
 });
