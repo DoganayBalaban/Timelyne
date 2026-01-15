@@ -5,8 +5,6 @@ import { AuthService } from "../services/authService";
 import { AppError } from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import { sendEmail } from "../utils/email";
-import logger from "../utils/logger";
-import { prisma } from "../utils/prisma";
 import { setTokenCookies } from "../utils/setTokenCookies";
 import { loginUserSchema, registerUserSchema, updateMeSchema } from "../validators/userSchema";
 
@@ -111,129 +109,32 @@ export const resetPassword = catchAsync(async (req: Request, res: Response) => {
     message: "Password reset successfully"
   });
 });
-export const me = async (req: AuthRequest, res: Response) => {
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id: req.user.id,
-        deleted_at: null, // Soft delete kontrolü
-      },
-      select: {
-        id: true,
-        email: true,
-        first_name: true,
-        last_name: true,
-        role: true,
-        avatar_url: true,
-        timezone: true,
-        currency: true,
-        hourly_rate: true,
-        plan: true,
-        plan_expires_at: true,
-        email_verified: true,
-        created_at: true,
-        updated_at: true,
-      },
-    });
-
-    if (!user) {
-      logger.warn("User not found in me endpoint", {
-        userId: req.user.id,
-        ip: req.ip,
-      });
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    logger.debug("User profile retrieved", {
-      userId: user.id,
-      ip: req.ip,
-    });
-
-    res.status(200).json({ user });
-  } catch (error: any) {
-    logger.error("Get user error", {
-      error: error.message,
-      stack: error.stack,
-      userId: req.user?.id,
-      ip: req.ip,
-    });
-    res.status(500).json({ message: "Internal server error" });
+export const me = catchAsync(async (req: AuthRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new AppError("Unauthorized", 401);
   }
-};
-export const updateMe = async (req: AuthRequest, res: Response) => {
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-     const parseResult = updateMeSchema.safeParse(req.body);
 
-    if (!parseResult.success) {
-      return res.status(400).json({
-        message: "Validation error",
-        errors: parseResult.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message,
-        })),
-      });
-    }
+
+  const user = await AuthService.getMe(req.user.id);
+
+  res.status(200).json({
+    status: "success",
+    user
+  });
+});
+export const updateMe = catchAsync(async (req: AuthRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new AppError("Unauthorized", 401);
+  }
+
+  const validatedData = updateMeSchema.parse(req.body);
  
-    const {
-      first_name,
-      last_name,
-      timezone,
-      currency,
-      hourly_rate,
-      avatar_url,
-    } = parseResult.data;
 
-    const user = await prisma.user.update({
-      where: {
-        id: req.user.id,
-        deleted_at: null, // Soft delete kontrolü
-      },
-      data: {
-        ...(first_name !== undefined && { first_name }),
-        ...(last_name !== undefined && { last_name }),
-        ...(timezone !== undefined && { timezone }),
-        ...(currency !== undefined && { currency }),
-        ...(hourly_rate !== undefined && { hourly_rate }),
-        ...(avatar_url !== undefined && { avatar_url }),
-      },
-      select: {
-        id: true,
-        email: true,
-        first_name: true,
-        last_name: true,
-        role: true,
-        avatar_url: true,
-        timezone: true,
-        currency: true,
-        hourly_rate: true,
-        plan: true,
-        plan_expires_at: true,
-        email_verified: true,
-        updated_at: true,
-      },
-    });
+  const user = await AuthService.updateMe(req.user.id, validatedData);
 
-    logger.info("User updated successfully", {
-      userId: user.id,
-      updatedFields: Object.keys(req.body),
-      ip: req.ip,
-    });
-
-    res.status(200).json({ message: "User updated successfully", user });
-  } catch (error: any) {
-    logger.error("Update user error", {
-      error: error.message,
-      stack: error.stack,
-      userId: req.user?.id,
-      ip: req.ip,
-    });
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
+  res.status(200).json({
+    status: "success",
+    message: "User updated successfully",
+    user
+  });
+});

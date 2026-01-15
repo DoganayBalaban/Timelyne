@@ -217,4 +217,76 @@ export class AuthService {
       });
     });
   }
+
+  static async getMe(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+        deleted_at: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+        avatar_url: true,
+        timezone: true,
+        currency: true,
+        hourly_rate: true,
+        plan: true,
+        plan_expires_at: true,
+        email_verified: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    return user;
+  }
+
+  static async updateMe(userId: string, data: {
+    first_name?: string;
+    last_name?: string;
+    timezone?: string;
+    currency?: string;
+    hourly_rate?: number;
+    avatar_url?: string;
+  }) {
+    const user = await prisma.user.update({
+      where: {
+        id: userId,
+        deleted_at: null,
+      },
+      data: {
+        ...(data.first_name !== undefined && { first_name: data.first_name }),
+        ...(data.last_name !== undefined && { last_name: data.last_name }),
+        ...(data.timezone !== undefined && { timezone: data.timezone }),
+        ...(data.currency !== undefined && { currency: data.currency }),
+        ...(data.hourly_rate !== undefined && { hourly_rate: data.hourly_rate }),
+        ...(data.avatar_url !== undefined && { avatar_url: data.avatar_url }),
+      },
+      select: {
+        id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+        avatar_url: true,
+        timezone: true,
+        currency: true,
+        hourly_rate: true,
+        plan: true,
+        plan_expires_at: true,
+        email_verified: true,
+        updated_at: true,
+      },
+    });
+
+    return user;
+  }
 }
