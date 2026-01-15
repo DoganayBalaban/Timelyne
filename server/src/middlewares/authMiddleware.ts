@@ -7,6 +7,7 @@ import { prisma } from "../utils/prisma";
 export interface AuthRequest extends Request {
   user?: {
     id: string;
+    email_verified: boolean;
   };
 }
 
@@ -42,7 +43,7 @@ export const protect = async (
         id: decoded.userId,
         deleted_at: null,
       },
-      select: { id: true },
+      select: { id: true, email_verified: true },
     });
 
     if (!user) {
