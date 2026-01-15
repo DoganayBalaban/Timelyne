@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { BCRYPT_ROUNDS } from "../config/constants";
 import { env } from "../config/env";
@@ -145,5 +146,36 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken: newRefreshToken, userId: payload.userId };
+  }
+
+  static async forgotPassword(email: string, frontendUrl: string) {
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+        deleted_at: null
+      }
+    });
+
+    // Always return success to prevent user enumeration
+    if (!user) {
+      return { emailSent: false };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    await prisma.user.update({
+      where: {
+        id: user.id
+      },
+      data: {
+        password_reset_token: hashedToken,
+        password_reset_expires: new Date(Date.now() + 15 * 60 * 1000)
+      }
+    });
+
+    const resetURL = `${frontendUrl}/reset-password/${resetToken}`;
+    
+    return { emailSent: true, resetURL, userEmail: user.email };
   }
 }

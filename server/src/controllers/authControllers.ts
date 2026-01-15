@@ -69,61 +69,35 @@ export const refresh = catchAsync(async (req: Request, res: Response) => {
     message: "Token refreshed successfully"
   });
 });
-export const forgotPassword = async (req:Request,res:Response) => {
-  try {
-    const {email} = req.body;
-    const user = await prisma.user.findUnique({
-      where:{
-        email,
-        deleted_at:null
-      }
-    })
-    if (!user) {
-      return res.status(200).json({
-  message: "If an account exists, a reset email has been sent"
-})
+export const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
 
-    }
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+  const result = await AuthService.forgotPassword(email, env.FRONTEND_URL);
 
-    await prisma.user.update({
-      where:{
-        id:user.id
-      },
-      data:{
-        password_reset_token:hashedToken,
-        password_reset_expires:new Date(Date.now() + 15 * 60 * 1000)
-      }
-    })
-    const resetURL = `${env.FRONTEND_URL}/reset-password/${resetToken}`;
+  if (result.emailSent) {
     const emailHtml = `
     <div style="font-family: sans-serif; max-width: 600px; margin: auto;">
       <h2>Şifre Sıfırlama Talebi</h2>
       <p>Şifrenizi sıfırlamak için aşağıdaki butona tıklayın:</p>
-      <a href="${resetURL}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Şifremi Sıfırla</a>
+      <a href="${result.resetURL!}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Şifremi Sıfırla</a>
       <p>Eğer bu talebi siz yapmadıysanız, bu e-postayı dikkate almayın.</p>
       <p>Bu bağlantı 15 dakika içinde geçerliliğini yitirecektir.</p>
     </div>
   `;
+    
     await sendEmail({
-      to: user.email,
+      to: result.userEmail!,
       subject: "Şifre Sıfırlama Talebi",
       html: emailHtml,
     });
-  
-
-    return res.status(200).json({ message: "Password reset email sent" });
-  } catch (error:any) {
-    logger.error("Password reset error", {
-      error: error.message,
-      stack: error.stack,
-      ip: req.ip,
-    });
-    return res.status(500).json({ message: "Internal server error" });
-    
   }
-};
+
+  // Always return same response to prevent user enumeration
+  res.status(200).json({
+    status: "success",
+    message: "If an account exists, a reset email has been sent"
+  });
+});
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
