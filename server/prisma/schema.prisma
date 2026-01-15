@@ -32,7 +32,9 @@ model User {
   hourly_rate     Decimal?  @db.Decimal(10, 2)
   plan            String    @default("free") @db.VarChar(20) // free, starter, pro, agency
   plan_expires_at DateTime?
-  email_verified  Boolean   @default(false)
+  email_verified             Boolean   @default(false)
+  verification_token         String?   @unique
+  verification_token_expires  DateTime?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @default(now()) @updatedAt
   deleted_at      DateTime?
