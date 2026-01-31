@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { connectDatabase } from "./config/db";
 import { env } from "./config/env";
+import { connectRedis } from "./config/redis";
 import { globalErrorHandler } from "./middlewares/errorMiddleware";
 import morganMiddleware from "./middlewares/morganMiddleware";
 import authRoute from "./routes/authRoute";
@@ -42,6 +43,7 @@ app.use("/api/auth", authRoute);
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();
+  await connectRedis();
 
   app.listen(env.PORT, () => {
     logger.info(`🚀 Server is running on port ${env.PORT}`);
