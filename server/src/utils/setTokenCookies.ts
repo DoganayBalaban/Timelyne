@@ -4,7 +4,8 @@ import { env } from "../config/env";
 export const setTokenCookies = (
   res: Response,
   accessToken: string,
-  refreshToken: string
+  refreshToken: string,
+  sessionId:string
 ) => {
   const isProduction = env.NODE_ENV === "production";
 
@@ -22,5 +23,12 @@ export const setTokenCookies = (
     secure: isProduction, // HTTPS only in production
     sameSite: isProduction ? "strict" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  res.cookie("sid", sessionId, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "strict" : "lax",
+    maxAge: 86400000,
   });
 };

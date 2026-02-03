@@ -1,17 +1,18 @@
 import { Request, Response } from "express";
 import { env } from "../config/env";
+import { redis } from "../config/redis";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { AuthService } from "../services/authService";
 import { AppError } from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import { sendEmail } from "../utils/email";
 import { setTokenCookies } from "../utils/setTokenCookies";
-import { loginUserSchema, registerUserSchema, updateMeSchema } from "../validators/userSchema";
+import { loginUserSchema, registerUserSchema, resetPasswordSchema, updateMeSchema } from "../validators/userSchema";
 
 export const register = catchAsync(async (req: Request, res: Response) => {
   const validatedData = registerUserSchema.parse(req.body);
 
-  const { user, accessToken, refreshToken, verificationToken } = await AuthService.registerUser(validatedData);
+  const { user, accessToken, refreshToken,sessionId, verificationToken } = await AuthService.registerUser(validatedData);
 
   // Send verification email
   const verificationURL = `${env.FRONTEND_URL}/verify-email/${verificationToken}`;
@@ -32,7 +33,7 @@ export const register = catchAsync(async (req: Request, res: Response) => {
     html: emailHtml,
   });
 
-  setTokenCookies(res, accessToken, refreshToken);
+  setTokenCookies(res, accessToken, refreshToken,sessionId);
   
   res.status(201).json({
     status: "success",
@@ -43,9 +44,9 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 export const login = catchAsync(async (req: Request, res: Response) => {
   const validatedData = loginUserSchema.parse(req.body);
 
-  const { user, accessToken, refreshToken } = await AuthService.loginUser(validatedData);
+  const { user, accessToken, refreshToken,sessionId } = await AuthService.loginUser(validatedData);
 
-  setTokenCookies(res, accessToken, refreshToken);
+  setTokenCookies(res, accessToken, refreshToken,sessionId);
 
   res.status(200).json({
     status: "success",
@@ -55,9 +56,13 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 });
 export const logout = catchAsync(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
+  const sessionId = req.cookies?.sid;
   
   if (refreshToken) {
     await AuthService.logoutUser(refreshToken);
+  }
+  if (sessionId) {
+    await redis.del(`sess:${sessionId}`)
   }
 
   const isProd = env.NODE_ENV === "production";
@@ -69,15 +74,17 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
 
   res.clearCookie("refreshToken", cookieOptions);
   res.clearCookie("accessToken", cookieOptions);
+  res.clearCookie("sid", cookieOptions);
 
   res.status(200).json({ status: "success", message: "Logged out successfully" });
 });
 export const refresh = catchAsync(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
+  const sessionId = req.cookies?.sid;
 
   const { accessToken, refreshToken: newRefreshToken } = await AuthService.refreshToken(refreshToken);
 
-  setTokenCookies(res, accessToken, newRefreshToken);
+  setTokenCookies(res, accessToken, newRefreshToken,sessionId);
 
   res.status(200).json({
     status: "success",
@@ -115,13 +122,13 @@ export const forgotPassword = catchAsync(async (req: Request, res: Response) => 
 });
 export const resetPassword = catchAsync(async (req: Request, res: Response) => {
   const { token } = req.params;
-  const { password } = req.body;
+  const validatedData = resetPasswordSchema.parse(req.body);
 
   if (!token || typeof token !== "string") {
     throw new AppError("Invalid or missing token", 400);
   }
 
-  await AuthService.resetPassword(token, password);
+  await AuthService.resetPassword(token, validatedData.password);
 
   res.status(200).json({
     status: "success",
@@ -157,7 +164,6 @@ export const updateMe = catchAsync(async (req: AuthRequest, res: Response) => {
     user
   });
 });
-
 export const verifyEmail = catchAsync(async (req: Request, res: Response) => {
   const { token } = req.params;
 
@@ -172,7 +178,6 @@ export const verifyEmail = catchAsync(async (req: Request, res: Response) => {
     message: "Email verified successfully"
   });
 });
-
 export const resendVerificationEmail = catchAsync(async (req: Request, res: Response) => {
   const { email } = req.body;
 

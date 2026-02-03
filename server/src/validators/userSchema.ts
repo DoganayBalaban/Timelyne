@@ -44,3 +44,17 @@ export const updateMeSchema = z.object({
 });
 
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
+
+// Reset password şeması - aynı güçlü şifre kuralları
+export const resetPasswordSchema = z.object({
+  password: z
+    .string()
+    .min(8, "Şifre en az 8 karakter olmalı")
+    .max(255, "Şifre çok uzun")
+    .regex(/[A-Z]/, "Şifre en az bir büyük harf içermelidir")
+    .regex(/[a-z]/, "Şifre en az bir küçük harf içermelidir")
+    .regex(/[0-9]/, "Şifre en az bir rakam içermelidir")
+    .regex(/[^A-Za-z0-9]/, "Şifre en az bir özel karakter içermelidir"),
+});
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
