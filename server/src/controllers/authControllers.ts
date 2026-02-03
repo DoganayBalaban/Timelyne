@@ -7,7 +7,7 @@ import { AppError } from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import { sendEmail } from "../utils/email";
 import { setTokenCookies } from "../utils/setTokenCookies";
-import { loginUserSchema, registerUserSchema, updateMeSchema } from "../validators/userSchema";
+import { loginUserSchema, registerUserSchema, resetPasswordSchema, updateMeSchema } from "../validators/userSchema";
 
 export const register = catchAsync(async (req: Request, res: Response) => {
   const validatedData = registerUserSchema.parse(req.body);
@@ -122,13 +122,13 @@ export const forgotPassword = catchAsync(async (req: Request, res: Response) => 
 });
 export const resetPassword = catchAsync(async (req: Request, res: Response) => {
   const { token } = req.params;
-  const { password } = req.body;
+  const validatedData = resetPasswordSchema.parse(req.body);
 
   if (!token || typeof token !== "string") {
     throw new AppError("Invalid or missing token", 400);
   }
 
-  await AuthService.resetPassword(token, password);
+  await AuthService.resetPassword(token, validatedData.password);
 
   res.status(200).json({
     status: "success",
