@@ -39,14 +39,21 @@ export const protect = async (
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as { userId: string };
 
     // --- REDIS CACHE KATMANI BAŞLANGICI ---
-    const cacheKey = `user:session:${decoded.userId}`;
+    // Cookie'den session ID al - authService ile tutarlı format kullan
+    const sessionId = req.cookies?.sid;
+    const cacheKey = sessionId ? `sess:${sessionId}` : null;
     
-    // Redis'ten kullanıcıyı çekmeyi dene
-    const cachedUser = await redis.get(cacheKey);
-
-    if (cachedUser) {
-      req.user = JSON.parse(cachedUser);
-      return next(); // Veritabanına hiç gitmeden devam et! 🚀
+    // Redis'ten kullanıcıyı çekmeyi dene (sadece session varsa)
+    if (cacheKey) {
+      const cachedUser = await redis.get(cacheKey);
+      if (cachedUser) {
+        const parsed = JSON.parse(cachedUser);
+        // Cached user'ın token'daki userId ile eşleştiğini doğrula
+        if (parsed.id === decoded.userId) {
+          req.user = { id: parsed.id, email_verified: parsed.email_verified };
+          return next(); // Veritabanına hiç gitmeden devam et! 🚀
+        }
+      }
     }
     // --- REDIS CACHE KATMANI SONU ---
 
@@ -65,8 +72,10 @@ export const protect = async (
     }
 
     // 4. Redis'e Kaydet (Bir sonraki istekte DB'ye gitmesin)
-    // TTL süresini JWT sürenle paralel tutabilirsin (Örn: 15 dakika)
-    await redis.set(cacheKey, JSON.stringify(user), "EX", 900); 
+    // Session varsa güncelle, yoksa yeni session oluşturma (login/register'da yapılır)
+    if (cacheKey) {
+      await redis.set(cacheKey, JSON.stringify(user), "EX", 900);
+    } 
 
     req.user = user;
     next();
