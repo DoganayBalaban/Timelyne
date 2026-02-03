@@ -6,6 +6,7 @@ import { BCRYPT_ROUNDS } from "../config/constants";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
 import { AppError } from "../utils/appError";
+import { cache } from "../utils/cache";
 import { prisma } from "../utils/prisma";
 
 export class AuthService {
@@ -226,6 +227,9 @@ export class AuthService {
         data: { revoked_at: new Date() },
       });
     });
+
+    // Cache invalidation: tüm session'ları temizle
+    await cache.deletePattern(`sess:*`);
   }
 
   static async getMe(userId: string) {
@@ -297,6 +301,9 @@ export class AuthService {
       },
     });
 
+    // Cache invalidation: kullanıcının session cache'ini güncelle
+    await cache.deletePattern(`sess:*`);
+
     return user;
   }
 
@@ -326,6 +333,9 @@ export class AuthService {
         verification_token_expires: null,
       },
     });
+
+    // Cache invalidation: email_verified değiştiği için session cache'i temizle
+    await cache.deletePattern(`sess:*`);
   }
 
   static async resendVerificationEmail(email: string) {
