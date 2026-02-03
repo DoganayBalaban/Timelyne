@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from 'uuid';
 import { BCRYPT_ROUNDS } from "../config/constants";
 import { env } from "../config/env";
+import { redis } from "../config/redis";
 import { AppError } from "../utils/appError";
 import { prisma } from "../utils/prisma";
 
@@ -31,11 +33,13 @@ export class AuthService {
           verification_token_expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         },
       });
+      const sessionId = uuidv4()
+      await redis.set(`sess:${sessionId}`,JSON.stringify(user),'EX',86400)
 
       const { accessToken, refreshToken } = this.generateTokens(user.id);
       await this.saveRefreshToken(tx, user.id, refreshToken);
 
-      return { user, accessToken, refreshToken, verificationToken };
+      return { user, accessToken, refreshToken, sessionId, verificationToken };
     });
     }
     static async loginUser(data:{email:string,password:string}){
@@ -67,7 +71,9 @@ export class AuthService {
                 }
             })
         })
-        return {user,accessToken,refreshToken}
+        const sessionId = uuidv4()
+        await redis.set(`sess:${sessionId}`,JSON.stringify(user),'EX',86400)
+        return {user,accessToken,refreshToken,sessionId}
     }
     static generateTokens(userId: string) {
     const accessToken = jwt.sign({ userId }, env.JWT_ACCESS_SECRET, { expiresIn: "15m" });

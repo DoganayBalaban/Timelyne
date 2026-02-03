@@ -38,3 +38,5 @@ yarn-error.log*
 
 # prisma
 /src/generated/prisma
+
+.DS_Store

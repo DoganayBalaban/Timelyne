@@ -1,16 +1,21 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
-import logger from "../utils/logger"; // Winston logger'ı ekledik
+import { redis } from "../config/redis";
+import logger from "../utils/logger";
 import { prisma } from "../utils/prisma";
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email_verified: boolean;
-  };
-}
 
+user?: {
+
+id: string;
+
+email_verified: boolean;
+
+};
+
+}
 export const protect = async (
   req: AuthRequest,
   res: Response,
@@ -19,7 +24,7 @@ export const protect = async (
   try {
     let token: string | undefined;
 
-    // 1. Token'ı Cookie veya Header'dan al
+    // 1. Token Alımı
     if (req.cookies?.accessToken) {
       token = req.cookies.accessToken;
     } else if (req.headers.authorization?.startsWith("Bearer ")) {
@@ -30,14 +35,22 @@ export const protect = async (
       return res.status(401).json({ message: "Oturum açmanız gerekiyor." });
     }
 
-    // 2. Token Doğrulama
-    // Not: Access token ve Refresh token için farklı secretlar kullanman güvenliği artırır
-    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as {
-      userId: string;
-    };
+    // 2. JWT Doğrulama (Hızlı, RAM üzerinde yapılır)
+    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as { userId: string };
 
-    // 3. Veritabanı Kontrolü (User aktif mi?)
-    // İpucu: Bu sorguyu çok sık yapıyorsan Redis ile cache'leyebilirsin.
+    // --- REDIS CACHE KATMANI BAŞLANGICI ---
+    const cacheKey = `user:session:${decoded.userId}`;
+    
+    // Redis'ten kullanıcıyı çekmeyi dene
+    const cachedUser = await redis.get(cacheKey);
+
+    if (cachedUser) {
+      req.user = JSON.parse(cachedUser);
+      return next(); // Veritabanına hiç gitmeden devam et! 🚀
+    }
+    // --- REDIS CACHE KATMANI SONU ---
+
+    // 3. Veritabanı Kontrolü (Sadece cache'de yoksa çalışır)
     const user = await prisma.user.findFirst({
       where: {
         id: decoded.userId,
@@ -51,14 +64,16 @@ export const protect = async (
       return res.status(401).json({ message: "Kullanıcı artık aktif değil." });
     }
 
-    // 4. User bilgisini request'e ekle
+    // 4. Redis'e Kaydet (Bir sonraki istekte DB'ye gitmesin)
+    // TTL süresini JWT sürenle paralel tutabilirsin (Örn: 15 dakika)
+    await redis.set(cacheKey, JSON.stringify(user), "EX", 900); 
+
     req.user = user;
     next();
   } catch (error: any) {
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({ message: "Token süresi doldu.", code: "TOKEN_EXPIRED" });
     }
-    
     logger.error("Protect Middleware Hatası:", error);
     return res.status(401).json({ message: "Yetkisiz erişim." });
   }
