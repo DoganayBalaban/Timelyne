@@ -1,0 +1,317 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Note: UUID extension must be enabled via migration:
+// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique @db.VarChar(255)
+  password_hash   String    @db.VarChar(255)
+  password_reset_token   String?   @unique
+  password_reset_expires DateTime?
+  first_name      String?   @db.VarChar(100)
+  last_name       String?   @db.VarChar(100)
+  role            String    @default("freelancer") @db.VarChar(20)
+  avatar_url      String?
+  timezone        String    @default("UTC") @db.VarChar(50)
+  currency        String    @default("USD") @db.VarChar(3)
+  hourly_rate     Decimal?  @db.Decimal(10, 2)
+  plan            String    @default("free") @db.VarChar(20) // free, starter, pro, agency
+  plan_expires_at DateTime?
+  email_verified             Boolean   @default(false)
+  verification_token         String?   @unique
+  verification_token_expires  DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @default(now()) @updatedAt
+  deleted_at      DateTime?
+
+  // Relations
+  clients        Client[]
+  projects       Project[]
+  time_entries   TimeEntry[]
+  invoices       Invoice[]
+  expenses       Expense[]
+  attachments    Attachment[]
+  refresh_tokens RefreshToken[]
+  audit_logs     AuditLog[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Client {
+  id            String    @id @default(uuid())
+  user_id       String
+  name          String    @db.VarChar(255)
+  company       String?   @db.VarChar(255)
+  email         String?   @db.VarChar(255)
+  phone         String?   @db.VarChar(50)
+  address       String?
+  notes         String?
+  hourly_rate   Decimal?  @db.Decimal(10, 2) // Override default rate
+  total_revenue Decimal   @default(0) @db.Decimal(12, 2)
+  total_paid    Decimal   @default(0) @db.Decimal(12, 2)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now()) @updatedAt
+  deleted_at    DateTime?
+
+  // Relations
+  user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  projects Project[]
+  invoices Invoice[]
+
+  @@index([user_id])
+  @@map("clients")
+}
+
+model Project {
+  id                  String    @id @default(uuid())
+  user_id             String
+  client_id           String?
+  name                String    @db.VarChar(255)
+  description         String?
+  status              String    @default("active") @db.VarChar(20) // active, completed, on_hold, cancelled
+  budget              Decimal?  @db.Decimal(12, 2)
+  hourly_rate         Decimal?  @db.Decimal(10, 2)
+  total_tracked_hours Decimal   @default(0) @db.Decimal(10, 2)
+  total_billed        Decimal   @default(0) @db.Decimal(12, 2)
+  start_date          DateTime? @db.Date
+  deadline            DateTime? @db.Date
+  color               String?   @db.VarChar(7) // Hex color for UI
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @default(now()) @updatedAt
+  deleted_at          DateTime?
+
+  // Relations
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  client       Client?      @relation(fields: [client_id], references: [id], onDelete: SetNull)
+  tasks        Task[]
+  time_entries TimeEntry[]
+  expenses     Expense[]
+  attachments  Attachment[]
+
+  @@index([user_id])
+  @@index([client_id])
+  @@index([user_id, status])
+  @@index([deadline])
+  @@map("projects")
+}
+
+model Task {
+  id              String    @id @default(uuid())
+  project_id      String
+  title           String    @db.VarChar(255)
+  description     String?
+  status          String    @default("todo") @db.VarChar(20) // todo, in_progress, done
+  priority        String    @default("medium") @db.VarChar(20) // low, medium, high
+  due_date        DateTime? @db.Date
+  estimated_hours Decimal?  @db.Decimal(6, 2)
+  actual_hours    Decimal   @default(0) @db.Decimal(6, 2)
+  position        Int? // For ordering in Kanban
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @default(now()) @updatedAt
+  deleted_at      DateTime?
+
+  // Relations
+  project      Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  time_entries TimeEntry[]
+
+  @@index([project_id])
+  @@index([project_id, status])
+  @@map("tasks")
+}
+
+model TimeEntry {
+  id               String    @id @default(uuid())
+  user_id          String
+  project_id       String
+  task_id          String?
+  description      String?
+  started_at       DateTime
+  ended_at         DateTime?
+  duration_minutes Int? // Computed on stop
+  date             DateTime  @db.Date // For easy date queries
+  billable         Boolean   @default(true)
+  hourly_rate      Decimal?  @db.Decimal(10, 2) // Snapshot at creation time
+  invoiced         Boolean   @default(false)
+  invoice_id       String?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now()) @updatedAt
+  deleted_at       DateTime?
+
+  // Relations
+  user    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  task    Task?    @relation(fields: [task_id], references: [id], onDelete: SetNull)
+  invoice Invoice? @relation(fields: [invoice_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id, date])
+  @@index([project_id, date])
+  @@index([project_id, billable, invoiced])
+  @@index([user_id, date, project_id])
+  @@map("time_entries")
+}
+
+model Invoice {
+  id               String    @id @default(uuid())
+  user_id          String
+  client_id        String
+  invoice_number   String    @unique @db.VarChar(50)
+  issue_date       DateTime  @db.Date
+  due_date         DateTime  @db.Date
+  subtotal         Decimal   @db.Decimal(12, 2)
+  tax              Decimal   @default(0) @db.Decimal(12, 2)
+  discount         Decimal   @default(0) @db.Decimal(12, 2)
+  total            Decimal   @db.Decimal(12, 2)
+  currency         String    @default("USD") @db.VarChar(3)
+  status           String    @default("draft") @db.VarChar(20) // draft, sent, paid, overdue, cancelled
+  notes            String?
+  terms            String?
+  pdf_url          String?
+  paid_at          DateTime?
+  last_reminder_at DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now()) @updatedAt
+  deleted_at       DateTime?
+
+  // Relations
+  user          User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  client        Client        @relation(fields: [client_id], references: [id], onDelete: Restrict)
+  invoice_items InvoiceItem[]
+  payments      Payment[]
+  time_entries  TimeEntry[]
+  attachments   Attachment[]
+
+  @@index([user_id])
+  @@index([client_id])
+  @@index([user_id, status])
+  @@index([due_date, status])
+  @@index([invoice_number])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoice_id  String
+  description String
+  quantity    Decimal  @db.Decimal(10, 2)
+  rate        Decimal  @db.Decimal(10, 2)
+  amount      Decimal  @db.Decimal(12, 2)
+  created_at  DateTime @default(now())
+
+  // Relations
+  invoice Invoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@index([invoice_id])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id               String   @id @default(uuid())
+  invoice_id       String
+  amount           Decimal  @db.Decimal(12, 2)
+  payment_method   String?  @db.VarChar(50) // bank_transfer, cash, credit_card, paypal
+  reference_number String?  @db.VarChar(100)
+  paid_at          DateTime
+  notes            String?
+  created_at       DateTime @default(now())
+
+  // Relations
+  invoice Invoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@index([invoice_id])
+  @@map("payments")
+}
+
+model Expense {
+  id             String    @id @default(uuid())
+  user_id        String
+  project_id     String?
+  category       String?   @db.VarChar(50) // software, hosting, travel, office
+  description    String
+  amount         Decimal   @db.Decimal(10, 2)
+  currency       String    @default("USD") @db.VarChar(3)
+  date           DateTime  @db.Date
+  receipt_url    String?
+  tax_deductible Boolean   @default(true)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now()) @updatedAt
+  deleted_at     DateTime?
+
+  // Relations
+  user    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id, date])
+  @@map("expenses")
+}
+
+model Attachment {
+  id          String   @id @default(uuid())
+  user_id     String
+  project_id  String?
+  invoice_id  String?
+  filename    String   @db.VarChar(255)
+  file_url    String
+  file_size   Int? // bytes
+  mime_type   String?  @db.VarChar(100)
+  uploaded_at DateTime @default(now())
+
+  // Relations
+  user    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@map("attachments")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  user_id    String
+  token      String    @unique @db.VarChar(500)
+  expires_at DateTime
+  created_at DateTime  @default(now())
+  revoked_at DateTime?
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  user_id     String?
+  action      String   @db.VarChar(50) // create, update, delete
+  entity_type String   @db.VarChar(50) // invoice, project, time_entry
+  entity_id   String // UUID
+  old_values  Json?
+  new_values  Json?
+  ip_address  String?  @db.VarChar(45)
+  user_agent  String?
+  created_at  DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id, created_at])
+  @@index([entity_type, entity_id])
+  @@map("audit_logs")
+}
