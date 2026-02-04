@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { v4 as uuidv4 } from 'uuid';
 import { BCRYPT_ROUNDS } from "../config/constants";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
@@ -34,7 +33,7 @@ export class AuthService {
           verification_token_expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         },
       });
-      const sessionId = uuidv4()
+      const sessionId = crypto.randomUUID()
       await redis.set(`sess:${sessionId}`,JSON.stringify(user),'EX',86400)
 
       const { accessToken, refreshToken } = this.generateTokens(user.id);
@@ -72,7 +71,7 @@ export class AuthService {
                 }
             })
         })
-        const sessionId = uuidv4()
+        const sessionId = crypto.randomUUID()
         await redis.set(`sess:${sessionId}`,JSON.stringify(user),'EX',86400)
         return {user,accessToken,refreshToken,sessionId}
     }
