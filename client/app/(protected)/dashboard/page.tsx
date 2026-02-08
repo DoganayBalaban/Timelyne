@@ -28,6 +28,13 @@ export default function DashboardPage() {
     }
   }, [isLoading, error, router]);
 
+  // Redirect to onboarding if not completed
+  useEffect(() => {
+    if (!isLoading && user && !user.is_onboarding_completed) {
+      router.push("/onboarding");
+    }
+  }, [isLoading, user, router]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
