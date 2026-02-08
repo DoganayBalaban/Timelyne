@@ -18,7 +18,7 @@ import {
     passwordResetLimiter,
     refreshLimiter,
     registerLimiter,
-    verificationLimiter,
+    verificationLimiter
 } from "../middlewares/rateLimiter";
 
 const router = express.Router();
