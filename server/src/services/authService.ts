@@ -250,6 +250,7 @@ export class AuthService {
         plan: true,
         plan_expires_at: true,
         email_verified: true,
+        is_onboarding_completed: true,
         created_at: true,
         updated_at: true,
       },
@@ -269,6 +270,8 @@ export class AuthService {
     currency?: string;
     hourly_rate?: number;
     avatar_url?: string;
+    role?: string;
+    is_onboarding_completed?: boolean;
   }) {
     const user = await prisma.user.update({
       where: {
@@ -282,6 +285,8 @@ export class AuthService {
         ...(data.currency !== undefined && { currency: data.currency }),
         ...(data.hourly_rate !== undefined && { hourly_rate: data.hourly_rate }),
         ...(data.avatar_url !== undefined && { avatar_url: data.avatar_url }),
+        ...(data.role !== undefined && { role: data.role }),
+        ...(data.is_onboarding_completed !== undefined && { is_onboarding_completed: data.is_onboarding_completed }),
       },
       select: {
         id: true,
@@ -296,6 +301,7 @@ export class AuthService {
         plan: true,
         plan_expires_at: true,
         email_verified: true,
+        is_onboarding_completed: true,
         updated_at: true,
       },
     });

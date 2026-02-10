@@ -33,6 +33,7 @@ model User {
   plan            String    @default("free") @db.VarChar(20) // free, starter, pro, agency
   plan_expires_at DateTime?
   email_verified             Boolean   @default(false)
+  is_onboarding_completed    Boolean   @default(false)
   verification_token         String?   @unique
   verification_token_expires  DateTime?
   created_at      DateTime  @default(now())

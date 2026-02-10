@@ -1,6 +1,6 @@
 "use client";
 
-import { authApi, LoginData, RegisterData } from "@/lib/api/auth";
+import { authApi, LoginData, RegisterData, UpdateMeData } from "@/lib/api/auth";
 import { useAppDispatch } from "@/lib/hooks/useRedux";
 import { logout as logoutAction, setUser } from "@/lib/store/authSlice";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,7 +40,13 @@ export function useLogin() {
       const userData = await authApi.getMe();
       dispatch(setUser(userData.user));
       queryClient.setQueryData(["user"], userData.user);
-      router.push("/dashboard");
+      
+      // Check if onboarding is completed
+      if (!userData.user.is_onboarding_completed) {
+        router.push("/onboarding");
+      } else {
+        router.push("/dashboard");
+      }
     },
   });
 }
@@ -58,7 +64,9 @@ export function useRegister() {
       const userData = await authApi.getMe();
       dispatch(setUser(userData.user));
       queryClient.setQueryData(["user"], userData.user);
-      router.push("/dashboard");
+      
+      // New users always go to onboarding
+      router.push("/onboarding");
     },
   });
 }
@@ -75,6 +83,20 @@ export function useLogout() {
       dispatch(logoutAction());
       queryClient.clear();
       router.push("/login");
+    },
+  });
+}
+
+// Update Me hook
+export function useUpdateMe() {
+  const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
+
+  return useMutation({
+    mutationFn: (data: UpdateMeData) => authApi.updateMe(data),
+    onSuccess: (response) => {
+      dispatch(setUser(response.user));
+      queryClient.setQueryData(["user"], response.user);
     },
   });
 }
