@@ -2,12 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import { useRegister } from "@/lib/hooks/useAuth";
 import { RegisterInput, registerSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Loader2, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 
@@ -46,7 +47,17 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
+      <div className="mb-2">
+         <Image
+          className="dark:invert"
+          src="/timelyne-logo.png"
+          alt="Timelyne logo"
+          width={250}
+          height={120}
+          priority
+        />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
