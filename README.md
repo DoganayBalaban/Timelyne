@@ -149,6 +149,26 @@ npm install npm@latest -g
    cd client && npm run dev
    ```
 
+### 🐳 Run with Docker
+
+Alternatively, you can run the entire stack using Docker:
+
+1. Configure environment variables
+   ```sh
+   # Copy the example docker environment file
+   cp .env.docker.example .env
+   # Edit .env with your configuration
+   ```
+
+2. Build and start containers
+   ```sh
+   docker-compose up --build
+   ```
+
+3. Access the application
+   - Client: http://localhost:3000
+   - Server: http://localhost:5001
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
