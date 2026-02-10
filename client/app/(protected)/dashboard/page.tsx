@@ -2,15 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { useLogout, useResendVerification, useUser } from "@/lib/hooks/useAuth";
 import { useAppSelector } from "@/lib/hooks/useRedux";
 import { AlertTriangle, Loader2, LogOut, Mail, User } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -62,7 +63,16 @@ export default function DashboardPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <Image
+              className="dark:invert"
+              src="/timelyne-logo.png"
+              alt="Timelyne"
+              width={140}
+              height={40}
+              priority
+            />
+          </div>
           <Button variant="outline" onClick={handleLogout} disabled={logout.isPending}>
             {logout.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

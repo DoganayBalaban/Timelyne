@@ -120,8 +120,20 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/50">
+      {/* Logo */}
+      <div className="w-full flex justify-center pt-8 pb-4">
+        <Image
+          className="dark:invert"
+          src="/timelyne-logo.png"
+          alt="Timelyne Logo"
+          width={180}
+          height={86}
+          priority
+        />
+      </div>
+
       {/* Header with progress */}
-      <div className="w-full max-w-2xl mx-auto px-4 pt-8 pb-4">
+      <div className="w-full max-w-2xl mx-auto px-4 pb-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Adım {step} / {totalSteps}</span>
