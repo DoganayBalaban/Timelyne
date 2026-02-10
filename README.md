@@ -14,10 +14,10 @@
 <br />
 <div align="center">
   <a href="https://github.com/doganaybalaban/timelyne">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="client/public/timelyne-logo.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">⏱️ Timelyne</h3>
+<h3 align="center">Timelyne</h3>
 
   <p align="center">
     Manage your freelance business in under 10 minutes a day.
