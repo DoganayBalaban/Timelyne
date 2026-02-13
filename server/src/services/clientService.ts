@@ -48,4 +48,31 @@ export class ClientService{
         });
         return client;
     }
+    static async updateClient(id: string, userId: string, data: {
+        name?: string;
+        company?: string;
+        email?: string;
+        phone?: string;
+        address?: string;
+        notes?: string;
+        hourly_rate?: number;
+    }) {
+        const client = await prisma.client.update({
+            where: {
+                id: id,
+                user_id: userId,
+                deleted_at: null
+            },
+            data: {
+                name: data.name,
+                company: data.company,
+                email: data.email,
+                phone: data.phone,
+                address: data.address,
+                notes: data.notes,
+                hourly_rate: data.hourly_rate,
+            },
+        });
+        return client;
+    }
 }
