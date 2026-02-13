@@ -75,4 +75,17 @@ export class ClientService{
         });
         return client;
     }
+    static async deleteClient(id: string, userId: string) {
+        const client = await prisma.client.update({
+            where: {
+                id: id,
+                user_id: userId,
+                deleted_at: null
+            },
+            data: {
+                deleted_at: new Date(),
+            },
+        });
+        return client;
+    }
 }
