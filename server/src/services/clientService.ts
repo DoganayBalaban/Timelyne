@@ -1,3 +1,4 @@
+import { AppError } from "../utils/appError";
 import { prisma } from "../utils/prisma";
 
 export class ClientService{
@@ -8,20 +9,18 @@ export class ClientService{
                 deleted_at: null
             }
         })
-        if (!clients) {
-            throw new Error("Clients not found")
-        }
         return clients
     }
-    static async getClientById(id:string){
+    static async getClientById(id:string, userId:string){
         const client = await prisma.client.findUnique({
             where:{
                 id: id,
+                user_id: userId,
                 deleted_at: null
             }
         })
         if (!client) {
-            throw new Error("Client not found")
+            throw new AppError("Client not found", 404);
         }
         return client
     }
@@ -57,6 +56,16 @@ export class ClientService{
         notes?: string;
         hourly_rate?: number;
     }) {
+        const existingClient = await prisma.client.findUnique({
+            where: {
+                id: id,
+                user_id: userId,
+                deleted_at: null
+            },
+        });
+        if (!existingClient) {
+            throw new AppError("Client not found", 404);
+        }
         const client = await prisma.client.update({
             where: {
                 id: id,
@@ -76,6 +85,16 @@ export class ClientService{
         return client;
     }
     static async deleteClient(id: string, userId: string) {
+        const existingClient = await prisma.client.findUnique({
+            where: {
+                id: id,
+                user_id: userId,
+                deleted_at: null
+            },
+        });
+        if (!existingClient) {
+            throw new AppError("Client not found", 404);
+        }
         const client = await prisma.client.update({
             where: {
                 id: id,
