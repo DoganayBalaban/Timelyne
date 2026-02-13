@@ -33,7 +33,7 @@ app.use(rateLimiters.api);
 
 app.use(morganMiddleware);
 app.use("/api/auth", authRoute);
-app.use("/api/client", clientRoute);
+app.use("/api/clients", clientRoute);
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();
