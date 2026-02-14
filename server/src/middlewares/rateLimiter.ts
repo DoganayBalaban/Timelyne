@@ -16,7 +16,7 @@ export const loginLimiter = redisRateLimit({
 // Register rate limiter - very strict to prevent spam
 export const registerLimiter = redisRateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  maxRequests: 3,
+  maxRequests: 5,
   keyPrefix: "ratelimit:register",
   message: "Too many registration attempts, please try again after 1 hour.",
 });

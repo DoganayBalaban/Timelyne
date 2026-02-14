@@ -9,6 +9,7 @@ import { globalErrorHandler } from "./middlewares/errorMiddleware";
 import morganMiddleware from "./middlewares/morganMiddleware";
 import { rateLimiters } from "./middlewares/redisRateLimit";
 import authRoute from "./routes/authRoute";
+import clientRoute from "./routes/clientRoute";
 import logger from "./utils/logger";
 
 const app = express();
@@ -32,6 +33,7 @@ app.use(rateLimiters.api);
 
 app.use(morganMiddleware);
 app.use("/api/auth", authRoute);
+app.use("/api/clients", clientRoute);
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();

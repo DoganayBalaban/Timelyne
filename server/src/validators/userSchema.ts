@@ -41,6 +41,8 @@ export const updateMeSchema = z.object({
   currency: z.string().length(3).optional(),
   hourly_rate: z.number().positive().optional(),
   avatar_url: z.string().url().optional(),
+  role: z.enum(["freelancer", "agency"]).optional(),
+  is_onboarding_completed: z.boolean().optional(),
 });
 
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;

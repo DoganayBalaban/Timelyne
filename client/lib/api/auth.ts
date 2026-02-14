@@ -25,8 +25,20 @@ export interface User {
   plan: string;
   plan_expires_at: string | null;
   email_verified: boolean;
+  is_onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface UpdateMeData {
+  first_name?: string;
+  last_name?: string;
+  timezone?: string;
+  currency?: string;
+  hourly_rate?: number;
+  avatar_url?: string;
+  role?: string;
+  is_onboarding_completed?: boolean;
 }
 
 export interface AuthResponse {
@@ -61,6 +73,12 @@ export const authApi = {
   // Get current user
   getMe: async (): Promise<{ status: string; user: User }> => {
     const response = await api.get("/auth/me");
+    return response.data;
+  },
+
+  // Update current user
+  updateMe: async (data: UpdateMeData): Promise<{ status: string; user: User }> => {
+    const response = await api.patch("/auth/me", data);
     return response.data;
   },
 
