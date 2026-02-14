@@ -42,6 +42,7 @@
     <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
+        <li><a href="#screenshots">Screenshots</a></li>
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
@@ -74,6 +75,21 @@ Timelyne is an **all-in-one SaaS platform** designed for freelancers and small a
 **Our core promise:**
 
 > *Running your freelance business should never take more than 10 minutes a day.*
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+## Screenshots
+
+### Dashboard
+<img src="client/public/readme/timelyne-ss-dashboard.png" alt="Dashboard" width="100%">
+
+### Müşteri Listesi (Clients)
+<img src="client/public/readme/timelyne-ss-clients.png" alt="Client List" width="100%">
+
+### Müşteri Detay (Client Detail)
+<img src="client/public/readme/timelyne-ss-clientDetail.png" alt="Client Detail" width="100%">
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -228,7 +244,7 @@ No clutter. No unnecessary features. Just what you need.
 
 - [x] Authentication & user onboarding
 - [ ] Time tracking MVP
-- [ ] Client & project management
+- [x] Client & project management
 - [ ] Automated invoicing
 - [ ] Financial dashboard
 - [ ] Team support for small agencies
@@ -309,7 +325,7 @@ Project Link: [https://github.com/doganaybalaban/timelyne](https://github.com/do
 [issues-url]: https://github.com/doganaybalaban/timelyne/issues
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/doganaybalaban
-[product-screenshot]: images/screenshot.png
+[product-screenshot]: client/public/readme/timelyne-ss-dashboard.png
 
 <!-- Tech Stack Badges -->
 [Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
