@@ -33,7 +33,8 @@ export const deleteProject = catchAsync(async (req:AuthRequest,res:Response)=>{
 })
 
 export const getProjectTasks = catchAsync(async (req:AuthRequest,res:Response)=>{
-    res.send("get project tasks");
+    const tasks = await ProjectService.getProjectTasks(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Project tasks fetched successfully",tasks})
 })
 
 export const getProjectTimeEntries = catchAsync(async (req:AuthRequest,res:Response)=>{

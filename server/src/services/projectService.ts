@@ -124,6 +124,33 @@ export class ProjectService {
         return project;
     }
 
+    static async getProjectTasks(userId: string, projectId: string) {
+        const project = await prisma.project.findUnique({
+            where: {
+                id: projectId,
+                user_id: userId,
+                deleted_at: null,
+            },
+        });
+
+        if (!project) {
+            throw new AppError("Project not found", 404);
+        }
+
+        const tasks = await prisma.task.findMany({
+            where: {
+                project_id: projectId,
+                deleted_at: null,
+            },
+            orderBy: [
+                { position: "asc" },
+                { created_at: "desc" },
+            ],
+        });
+
+        return tasks;
+    }
+
     static async updateProject(
         userId: string,
         projectId: string,
