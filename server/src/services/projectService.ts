@@ -151,6 +151,39 @@ export class ProjectService {
         return tasks;
     }
 
+    static async getProjectTimeEntries(userId: string, projectId: string) {
+        const project = await prisma.project.findUnique({
+            where: {
+                id: projectId,
+                user_id: userId,
+                deleted_at: null,
+            },
+        });
+
+        if (!project) {
+            throw new AppError("Project not found", 404);
+        }
+
+        const timeEntries = await prisma.timeEntry.findMany({
+            where: {
+                project_id: projectId,
+                user_id: userId,
+                deleted_at: null,
+            },
+            include: {
+                task: {
+                    select: {
+                        id: true,
+                        title: true,
+                    },
+                },
+            },
+            orderBy: { started_at: "desc" },
+        });
+
+        return timeEntries;
+    }
+
     static async updateProject(
         userId: string,
         projectId: string,

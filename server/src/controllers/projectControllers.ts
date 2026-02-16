@@ -38,7 +38,8 @@ export const getProjectTasks = catchAsync(async (req:AuthRequest,res:Response)=>
 })
 
 export const getProjectTimeEntries = catchAsync(async (req:AuthRequest,res:Response)=>{
-    res.send("get project time entries");
+    const timeEntries = await ProjectService.getProjectTimeEntries(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Time entries fetched successfully",timeEntries})
 })
 
 export const getProjectStats = catchAsync(async (req:AuthRequest,res:Response)=>{
