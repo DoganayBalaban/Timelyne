@@ -1,0 +1,66 @@
+import { Response } from "express";
+import { AuthRequest } from "../middlewares/authMiddleware";
+import { ProjectService } from "../services/projectService";
+import { catchAsync } from "../utils/catchAsync";
+import { addAttachmentSchema, createProjectSchema, getProjectsQuerySchema, updateProjectSchema } from "../validators/projectSchema";
+
+export const getAllProjects = catchAsync(async (req:AuthRequest,res:Response)=>{
+    const query = getProjectsQuerySchema.parse(req.query);
+    const projects = await ProjectService.getAllProjects(req.user!.id, query);
+    res.status(200).json({success:true,message:"Projects fetched successfully",...projects})
+})
+
+export const createProject = catchAsync(async (req:AuthRequest,res:Response)=>{
+    const parsed = createProjectSchema.parse(req.body);
+    const project = await ProjectService.createProject(req.user!.id, parsed);
+    res.status(201).json({success:true,message:"Project created successfully",project})
+})
+
+export const getProjectById = catchAsync(async (req:AuthRequest,res:Response)=>{
+    const project = await ProjectService.getProjectById(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Project fetched successfully",project})
+})
+
+export const updateProject = catchAsync(async (req:AuthRequest,res:Response)=>{
+    const parsed = updateProjectSchema.parse(req.body);
+    const project = await ProjectService.updateProject(req.user!.id, req.params.id as string, parsed);
+    res.status(200).json({success:true,message:"Project updated successfully",project})
+})
+
+export const deleteProject = catchAsync(async (req:AuthRequest,res:Response)=>{
+    await ProjectService.deleteProject(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Project deleted successfully"})
+})
+
+export const getProjectTasks = catchAsync(async (req:AuthRequest,res:Response)=>{
+    const tasks = await ProjectService.getProjectTasks(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Project tasks fetched successfully",tasks})
+})
+
+export const getProjectTimeEntries = catchAsync(async (req:AuthRequest,res:Response)=>{
+    const timeEntries = await ProjectService.getProjectTimeEntries(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Time entries fetched successfully",timeEntries})
+})
+
+export const getProjectStats = catchAsync(async (req:AuthRequest,res:Response)=>{
+    const stats = await ProjectService.getProjectStats(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Project stats fetched successfully",stats})
+})
+
+export const addProjectAttachment = catchAsync(async (req:AuthRequest,res:Response)=>{
+    if (!req.file) {
+        return res.status(400).json({message:"No file uploaded"})
+    }
+
+    const validatedData = addAttachmentSchema.parse({
+        projectId: req.params.id,
+        userId: req.user!.id,
+        filename: req.file.originalname,
+        file_url: (req.file as any).location ?? req.file.path,
+        file_size: req.file.size,
+        mime_type: req.file.mimetype,
+    });
+
+    const attachment = await ProjectService.addAttachment(validatedData);
+    res.status(201).json({success:true,message:"Attachment added successfully",attachment})
+})
