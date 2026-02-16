@@ -2,7 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ProjectService } from "../services/projectService";
 import { catchAsync } from "../utils/catchAsync";
-import { addAttachmentSchema, createProjectSchema, getProjectsQuerySchema } from "../validators/projectSchema";
+import { addAttachmentSchema, createProjectSchema, getProjectsQuerySchema, updateProjectSchema } from "../validators/projectSchema";
 
 export const getAllProjects = catchAsync(async (req:AuthRequest,res:Response)=>{
     const query = getProjectsQuerySchema.parse(req.query);
@@ -17,15 +17,19 @@ export const createProject = catchAsync(async (req:AuthRequest,res:Response)=>{
 })
 
 export const getProjectById = catchAsync(async (req:AuthRequest,res:Response)=>{
-    res.send("get project by id");
+    const project = await ProjectService.getProjectById(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Project fetched successfully",project})
 })
 
 export const updateProject = catchAsync(async (req:AuthRequest,res:Response)=>{
-    res.send("update project");
+    const parsed = updateProjectSchema.parse(req.body);
+    const project = await ProjectService.updateProject(req.user!.id, req.params.id as string, parsed);
+    res.status(200).json({success:true,message:"Project updated successfully",project})
 })
 
 export const deleteProject = catchAsync(async (req:AuthRequest,res:Response)=>{
-    res.send("delete project");
+    await ProjectService.deleteProject(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Project deleted successfully"})
 })
 
 export const getProjectTasks = catchAsync(async (req:AuthRequest,res:Response)=>{

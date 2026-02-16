@@ -98,4 +98,105 @@ export class ProjectService {
 
         return attachment;
     }
+
+    static async getProjectById(userId: string, projectId:string){
+        const project = await prisma.project.findUnique({
+            where:{
+                user_id:userId,
+                id:projectId,
+                deleted_at:null
+            },
+            include:{
+                client:{
+                    select:{
+                        id:true,
+                        name:true,
+                        company:true
+                    }
+                }
+            }
+        })
+
+        if(!project){
+            throw new AppError("Project not found",404);
+        }
+
+        return project;
+    }
+
+    static async updateProject(
+        userId: string,
+        projectId: string,
+        data: {
+            name?: string;
+            status?: string;
+            client_id?: string;
+            description?: string;
+            budget?: number;
+            hourly_rate?: number;
+            start_date?: string;
+            deadline?: string;
+            color?: string;
+        }
+    ) {
+        const existingProject = await prisma.project.findUnique({
+            where: {
+                id: projectId,
+                user_id: userId,
+                deleted_at: null,
+            },
+        });
+
+        if (!existingProject) {
+            throw new AppError("Project not found", 404);
+        }
+
+        const project = await prisma.project.update({
+            where: {
+                id: projectId,
+                user_id: userId,
+                deleted_at: null,
+            },
+            data: {
+                name: data.name,
+                status: data.status,
+                client_id: data.client_id,
+                description: data.description,
+                budget: data.budget,
+                hourly_rate: data.hourly_rate,
+                start_date: data.start_date ? new Date(data.start_date) : undefined,
+                deadline: data.deadline ? new Date(data.deadline) : undefined,
+                color: data.color,
+            },
+        });
+
+        return project;
+    }
+
+    static async deleteProject(userId: string, projectId: string) {
+        const existingProject = await prisma.project.findUnique({
+            where: {
+                id: projectId,
+                user_id: userId,
+                deleted_at: null,
+            },
+        });
+
+        if (!existingProject) {
+            throw new AppError("Project not found", 404);
+        }
+
+        const project = await prisma.project.update({
+            where: {
+                id: projectId,
+                user_id: userId,
+                deleted_at: null,
+            },
+            data: {
+                deleted_at: new Date(),
+            },
+        });
+
+        return project;
+    }
 }
