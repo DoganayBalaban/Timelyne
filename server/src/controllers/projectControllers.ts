@@ -43,7 +43,8 @@ export const getProjectTimeEntries = catchAsync(async (req:AuthRequest,res:Respo
 })
 
 export const getProjectStats = catchAsync(async (req:AuthRequest,res:Response)=>{
-    res.send("get project stats");
+    const stats = await ProjectService.getProjectStats(req.user!.id, req.params.id as string);
+    res.status(200).json({success:true,message:"Project stats fetched successfully",stats})
 })
 
 export const addProjectAttachment = catchAsync(async (req:AuthRequest,res:Response)=>{

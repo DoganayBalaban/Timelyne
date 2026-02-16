@@ -184,6 +184,82 @@ export class ProjectService {
         return timeEntries;
     }
 
+    static async getProjectStats(userId: string, projectId: string) {
+        const project = await prisma.project.findUnique({
+            where: {
+                id: projectId,
+                user_id: userId,
+                deleted_at: null,
+            },
+        });
+
+        if (!project) {
+            throw new AppError("Project not found", 404);
+        }
+
+        const [taskCounts, timeAgg, billableTimeAgg, expenseAgg] = await Promise.all([
+            // Task counts by status
+            prisma.task.groupBy({
+                by: ["status"],
+                where: { project_id: projectId, deleted_at: null },
+                _count: { id: true },
+            }),
+            // Total tracked time
+            prisma.timeEntry.aggregate({
+                where: { project_id: projectId, user_id: userId, deleted_at: null },
+                _sum: { duration_minutes: true },
+                _count: { id: true },
+            }),
+            // Billable tracked time
+            prisma.timeEntry.aggregate({
+                where: { project_id: projectId, user_id: userId, deleted_at: null, billable: true },
+                _sum: { duration_minutes: true },
+            }),
+            // Total expenses
+            prisma.expense.aggregate({
+                where: { project_id: projectId, user_id: userId, deleted_at: null },
+                _sum: { amount: true },
+                _count: { id: true },
+            }),
+        ]);
+
+        const totalTasks = taskCounts.reduce((sum, g) => sum + g._count.id, 0);
+        const tasksByStatus = Object.fromEntries(
+            taskCounts.map((g) => [g.status, g._count.id])
+        );
+
+        const totalMinutes = timeAgg._sum.duration_minutes ?? 0;
+        const totalHours = Math.round((totalMinutes / 60) * 100) / 100;
+        const billableMinutes = billableTimeAgg._sum.duration_minutes ?? 0;
+        const billableHours = Math.round((billableMinutes / 60) * 100) / 100;
+        const totalExpenses = expenseAgg._sum.amount?.toNumber() ?? 0;
+
+        const budgetUsed = project.budget
+            ? Math.round((project.total_billed.toNumber() / project.budget.toNumber()) * 10000) / 100
+            : null;
+
+        return {
+            tasks: {
+                total: totalTasks,
+                ...tasksByStatus,
+            },
+            time: {
+                total_entries: timeAgg._count.id,
+                total_hours: totalHours,
+                billable_hours: billableHours,
+            },
+            expenses: {
+                total_count: expenseAgg._count.id,
+                total_amount: totalExpenses,
+            },
+            budget: {
+                budget: project.budget?.toNumber() ?? null,
+                total_billed: project.total_billed.toNumber(),
+                budget_used_percent: budgetUsed,
+            },
+        };
+    }
+
     static async updateProject(
         userId: string,
         projectId: string,
