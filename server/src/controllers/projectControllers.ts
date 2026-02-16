@@ -2,14 +2,18 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ProjectService } from "../services/projectService";
 import { catchAsync } from "../utils/catchAsync";
-import { addAttachmentSchema } from "../validators/projectSchema";
+import { addAttachmentSchema, createProjectSchema, getProjectsQuerySchema } from "../validators/projectSchema";
 
 export const getAllProjects = catchAsync(async (req:AuthRequest,res:Response)=>{
-    res.send("all projects");
+    const query = getProjectsQuerySchema.parse(req.query);
+    const projects = await ProjectService.getAllProjects(req.user!.id, query);
+    res.status(200).json({success:true,message:"Projects fetched successfully",...projects})
 })
 
 export const createProject = catchAsync(async (req:AuthRequest,res:Response)=>{
-    res.send("create project");
+    const parsed = createProjectSchema.parse(req.body);
+    const project = await ProjectService.createProject(req.user!.id, parsed);
+    res.status(201).json({success:true,message:"Project created successfully",project})
 })
 
 export const getProjectById = catchAsync(async (req:AuthRequest,res:Response)=>{

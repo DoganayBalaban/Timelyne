@@ -1,8 +1,81 @@
+import { Prisma } from "../generated/prisma/client";
 import { AppError } from "../utils/appError";
 import { prisma } from "../utils/prisma";
-import { AddAttachmentInput } from "../validators/projectSchema";
+import { AddAttachmentInput, GetProjectsQueryInput } from "../validators/projectSchema";
 
 export class ProjectService {
+    static async getAllProjects(userId: string, query: GetProjectsQueryInput) {
+        const { page, limit, search, status, client_id, sort, order } = query;
+        const skip = (page - 1) * limit;
+
+        const where: Prisma.ProjectWhereInput = {
+            user_id: userId,
+            deleted_at: null,
+            ...(status && { status }),
+            ...(client_id && { client_id }),
+            ...(search && {
+                OR: [
+                    { name: { contains: search, mode: "insensitive" as Prisma.QueryMode } },
+                    { description: { contains: search, mode: "insensitive" as Prisma.QueryMode } },
+                ],
+            }),
+        };
+
+        const [projects, total] = await Promise.all([
+            prisma.project.findMany({
+                where,
+                orderBy: { [sort]: order },
+                skip,
+                take: limit,
+                include: {
+                    client: {
+                        select: { id: true, name: true, company: true },
+                    },
+                },
+            }),
+            prisma.project.count({ where }),
+        ]);
+
+        return {
+            projects,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    static async createProject(
+        userId: string,
+        data: {
+            name: string;
+            status: string;
+            client_id?: string;
+            description?: string;
+            budget?: number;
+            hourly_rate?: number;
+            start_date?: string;
+            deadline?: string;
+            color?: string;
+        }
+    ) {
+        const project = await prisma.project.create({
+            data: {
+                user_id: userId,
+                name: data.name,
+                status: data.status,
+                client_id: data.client_id,
+                description: data.description,
+                budget: data.budget,
+                hourly_rate: data.hourly_rate,
+                start_date: data.start_date ? new Date(data.start_date) : undefined,
+                deadline: data.deadline ? new Date(data.deadline) : undefined,
+                color: data.color,
+            },
+        });
+        return project;
+    }
+
     static async addAttachment(data: AddAttachmentInput) {
         const project = await prisma.project.findUnique({
             where: { id: data.projectId }
