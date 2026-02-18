@@ -5,6 +5,7 @@ import {
   GetTimeReportQueryInput,
   ManualTimeEntryInput,
   StartTimeEntryInput,
+  UpdateTimeEntryInput,
 } from "../validators/timerSchema";
 
 export class TimerService {
@@ -348,8 +349,100 @@ export class TimerService {
     return entry;
   }
 
-  static async updateTimeEntry(userId: string, timerId: string, data: any) {
-    // TODO: Implement update time entry logic
+  static async updateTimeEntry(
+    userId: string,
+    timerId: string,
+    data: UpdateTimeEntryInput,
+  ) {
+    const existing = await prisma.timeEntry.findFirst({
+      where: {
+        id: timerId,
+        user_id: userId,
+        deleted_at: null,
+      },
+    });
+    if (!existing) {
+      throw new AppError("Zaman kaydı bulunamadı", 404);
+    }
+    if (existing.invoiced) {
+      throw new AppError("Faturalandırılmış kayıt güncellenemez", 400);
+    }
+
+    // Tarihler string olarak gelirse Date objesine çeviriyoruz (zaten validator yapıyor ama garanti olsun)
+    const newStartedAt = data.started_at
+      ? new Date(data.started_at)
+      : existing.started_at;
+    const newEndedAt = data.ended_at
+      ? new Date(data.ended_at)
+      : existing.ended_at;
+
+    // Eğer tarih değişikliği varsa çakışma kontrolü yap
+    if (data.started_at || data.ended_at) {
+      if (newEndedAt && newEndedAt <= newStartedAt) {
+        throw new AppError(
+          "Bitiş zamanı başlangıç zamanından sonra olmalıdır",
+          400,
+        );
+      }
+
+      const overlapping = await prisma.timeEntry.findFirst({
+        where: {
+          id: { not: timerId }, // Kendisi hariç
+          user_id: userId,
+          deleted_at: null,
+          OR: [
+            newEndedAt
+              ? {
+                  started_at: { lt: newEndedAt },
+                  ended_at: { gt: newStartedAt },
+                }
+              : {
+                  started_at: { lt: new Date() },
+                  ended_at: { gt: newStartedAt },
+                },
+
+            {
+              started_at: { lt: newEndedAt || new Date() },
+              ended_at: null,
+            },
+          ],
+        },
+      });
+
+      if (overlapping) {
+        throw new AppError(
+          "Bu zaman aralığında başka bir kayıt veya aktif timer mevcut",
+          400,
+        );
+      }
+    }
+
+    let durationMinutes = existing.duration_minutes;
+
+    if (newEndedAt) {
+      durationMinutes = Math.ceil(
+        (newEndedAt.getTime() - newStartedAt.getTime()) / 60000,
+      );
+    } else {
+      // Eğer timer hala aktifse süre hesaplamasına gerek yok, durdurulunca hesaplanacak
+      durationMinutes = 0;
+    }
+
+    const updated = await prisma.timeEntry.update({
+      where: { id: timerId },
+      data: {
+        description: data.description,
+        started_at: newStartedAt,
+        ended_at: newEndedAt,
+        duration_minutes: durationMinutes,
+        billable: data.billable,
+        task_id: data.taskId,
+        project_id: data.projectId,
+        date: newStartedAt,
+      },
+    });
+
+    return updated;
   }
 
   static async deleteTimeEntry(userId: string, timerId: string) {
