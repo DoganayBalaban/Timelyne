@@ -1,9 +1,21 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { TimerService } from "../services/timerService";
+import { AppError } from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 
 export const startTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
-    // TODO: Call TimerService.startTimeEntry
+    const userId = req.user?.id
+    if(!userId){
+        throw new AppError("User not found",404)
+    }
+    const {projectId,taskId,description,billable} = req.body
+    const entry = await TimerService.startTimeEntry(userId,{projectId,taskId,description,billable})
+    res.status(201).json({
+        success:true,
+        message:"Timer started successfully",
+        data:entry
+    })
 });
 
 export const stopTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
