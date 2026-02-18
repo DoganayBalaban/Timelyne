@@ -63,7 +63,14 @@ export const getTimeReport = catchAsync(async (req: AuthRequest, res: Response) 
 });
 
 export const getTimeEntryById = catchAsync(async (req: AuthRequest, res: Response) => {
-    // TODO: Call TimerService.getTimeEntryById
+    const userId = req.user!.id
+    const {id} = req.params
+    const entry = await TimerService.getTimeEntryById(userId,id as string)
+    res.status(200).json({
+        success:true,
+        message:"Time entry fetched successfully",
+        data:entry
+    })
 });
 
 export const updateTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
