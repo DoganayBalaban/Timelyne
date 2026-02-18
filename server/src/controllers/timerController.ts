@@ -30,11 +30,24 @@ export const stopTimeEntry = catchAsync(async (req: AuthRequest, res: Response) 
 });
 
 export const getActiveTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
-    // TODO: Call TimerService.getActiveTimeEntry
+    const userId = req.user!.id
+    const entry = await TimerService.getActiveTimeEntry(userId)
+    res.status(200).json({
+        success:true,
+        message:"Active timer fetched successfully",
+        data:entry
+    })
 });
 
 export const createManualTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
-    // TODO: Call TimerService.createManualTimeEntry
+      const userId = req.user!.id
+      const {projectId,taskId,description,started_at,ended_at,billable} = req.body
+      const entry = await TimerService.createManualTimeEntry(userId,{projectId,taskId,description,started_at,ended_at,billable})
+      res.status(201).json({
+        success:true,
+        message:"Manual time entry created successfully",
+        data:entry
+      })
 });
 
 export const getTimeReport = catchAsync(async (req: AuthRequest, res: Response) => {

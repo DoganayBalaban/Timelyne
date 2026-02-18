@@ -1,7 +1,7 @@
 import { redis } from "../config/redis";
 import { AppError } from "../utils/appError";
 import { prisma } from "../utils/prisma";
-import { StartTimeEntryInput } from "../validators/timerSchema";
+import { ManualTimeEntryInput, StartTimeEntryInput } from "../validators/timerSchema";
 
 export class TimerService {
     static async startTimeEntry(userId: string, data: StartTimeEntryInput) {
@@ -103,11 +103,116 @@ export class TimerService {
     }
 
     static async getActiveTimeEntry(userId: string) {
-        // TODO: Implement get active timer logic
+        const redisKey = `user:${userId}:active_timer`;
+        const cached = await redis.get(redisKey)
+        if(cached){
+            const parsed = JSON.parse(cached)
+            const dbEntry = await prisma.timeEntry.findFirst({
+                where:{
+                    id:parsed.id,
+                    user_id:userId,
+                    ended_at:null,
+                    deleted_at:null
+                },
+                include:{
+                    project:true,
+                    task:true
+                }
+            })
+            if(dbEntry){
+                return dbEntry
+            }
+            await redis.del(redisKey)
+        }
+         const dbEntry = await prisma.timeEntry.findFirst({
+                where:{
+                
+                    user_id:userId,
+                    ended_at:null,
+                    deleted_at:null
+                },
+                include:{
+                    project:true,
+                    task:true
+                }
+            })
+            if (!dbEntry) {
+                return null
+            }
+            await redis.set(redisKey,JSON.stringify({
+                id:dbEntry.id,
+                started_at:dbEntry.started_at,
+                project_id:dbEntry.project_id
+            }))
+            return dbEntry
+
     }
 
-    static async createManualTimeEntry(userId: string, data: any) {
-        // TODO: Implement manual time entry logic
+    static async createManualTimeEntry(userId: string, data: ManualTimeEntryInput) {
+      const now = new Date()
+      const start = new Date(data.started_at);
+      const end = new Date(data.ended_at);
+
+      if (start > now || end > now) {
+        throw new AppError("Geçersiz tarih: Gelecek zaman seçilemez", 400)
+      }
+      if (end < start) {
+         throw new AppError("Geçersiz tarih: Bitiş zamanı başlangıçtan önce olamaz", 400)
+      }
+      
+      const durationMinutes = Math.ceil(
+        (end.getTime() - start.getTime()) / 60000
+      );
+      
+      return await prisma.$transaction(async (tx)=>{
+        const overlapping = await tx.timeEntry.findFirst({
+          where:{
+            user_id:userId,
+            deleted_at:null,
+            OR:[
+              {
+                started_at: { lt: end },
+                ended_at: { gt: start }
+              },
+              {
+                started_at: { lt: end },
+                ended_at: null
+              }
+            ]
+          }
+        })
+        
+        if (overlapping) {
+            throw new AppError("Bu zaman aralığında başka bir kayıt veya aktif timer mevcut", 400);
+        }
+
+        const project = await tx.project.findUnique({
+            where:{id:data.projectId},
+            select:{
+                hourly_rate:true
+            }
+        })
+        
+        if (!project) {
+            throw new AppError("Project not found", 404)
+        }
+        
+        const newEntry = await tx.timeEntry.create({
+            data:{
+                user_id:userId,
+                project_id:data.projectId,
+                task_id:data.taskId,
+                description:data.description,
+                billable:data.billable,
+                started_at:start,
+                ended_at:end,
+                duration_minutes:durationMinutes,
+                date:start,
+                hourly_rate:project.hourly_rate,
+            }
+        })
+        return newEntry
+      })
     }
 
     static async getTimeReport(userId: string, query: any) {
