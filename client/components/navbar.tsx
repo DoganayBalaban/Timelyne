@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useLogout, useUser } from "@/lib/hooks/useAuth";
 import {
+    FolderOpen,
     LayoutDashboard,
     Loader2,
     LogOut,
@@ -23,6 +24,11 @@ const navItems = [
     label: "Müşteriler",
     href: "/clients",
     icon: Users,
+  },
+  {
+    label: "Projeler",
+    href: "/projects",
+    icon: FolderOpen,
   },
 ];
 
