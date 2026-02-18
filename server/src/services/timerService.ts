@@ -1,7 +1,7 @@
 import { redis } from "../config/redis";
 import { AppError } from "../utils/appError";
 import { prisma } from "../utils/prisma";
-import { ManualTimeEntryInput, StartTimeEntryInput } from "../validators/timerSchema";
+import { GetTimeReportQueryInput, ManualTimeEntryInput, StartTimeEntryInput } from "../validators/timerSchema";
 
 export class TimerService {
     static async startTimeEntry(userId: string, data: StartTimeEntryInput) {
@@ -215,8 +215,83 @@ export class TimerService {
       })
     }
 
-    static async getTimeReport(userId: string, query: any) {
-        // TODO: Implement time report logic
+    static async getTimeReport(userId: string, query: GetTimeReportQueryInput) {
+        const { start_date, end_date, project_id } = query;
+
+        const end = end_date ? new Date(end_date) : new Date();
+        const start = start_date ? new Date(start_date) : new Date(new Date().setDate(end.getDate() - 30));
+
+        if (end < start) {
+            throw new AppError("Invalid date range", 400);
+        }
+
+        const whereClause: any = {
+            user_id: userId,
+            deleted_at: null,
+            date: {
+                gte: start,
+                lte: end
+            },
+            ended_at: {
+                not: null
+            }
+        };
+
+        if (project_id) {
+            whereClause.project_id = project_id;
+        }
+
+        const entries = await prisma.timeEntry.findMany({
+            where: whereClause,
+            select: {
+                project_id: true,
+                duration_minutes: true,
+                billable: true,
+                hourly_rate: true
+            }
+        });
+
+        let totalMinutes = 0;
+        let totalBillableMinutes = 0;
+        let totalRevenue = 0;
+
+        const projectMap: Record<string, any> = {};
+
+        for (const entry of entries) {
+            const minutes = entry.duration_minutes ?? 0;
+            totalMinutes += minutes;
+
+            let revenue = 0;
+            if (entry.billable) {
+                totalBillableMinutes += minutes;
+                revenue = (minutes / 60) * Number(entry.hourly_rate ?? 0);
+                totalRevenue += revenue;
+            }
+
+            // Project aggregation
+            if (!projectMap[entry.project_id]) {
+                projectMap[entry.project_id] = {
+                    project_id: entry.project_id,
+                    total_minutes: 0,
+                    billable_minutes: 0,
+                    revenue: 0
+                };
+            }
+
+            projectMap[entry.project_id].total_minutes += minutes;
+
+            if (entry.billable) {
+                projectMap[entry.project_id].billable_minutes += minutes;
+                projectMap[entry.project_id].revenue += revenue;
+            }
+        }
+
+        return {
+            total_minutes: totalMinutes,
+            total_billable_minutes: totalBillableMinutes,
+            total_revenue: Number(totalRevenue.toFixed(2)),
+            projects: Object.values(projectMap)
+        };
     }
 
     static async getTimeEntryById(userId: string, timerId: string) {

@@ -3,24 +3,24 @@ import { z } from "zod";
 // --- Params ---
 
 export const timeEntryIdParamSchema = z.object({
-    id: z.string().uuid("Geçerli bir zaman kaydı ID'si giriniz"),
+    id: z.uuid("Geçerli bir zaman kaydı ID'si giriniz"),
 });
 
 // --- Timer Operations ---
 
 export const startTimeEntrySchema = z.object({
-    projectId: z.string().uuid("Geçerli bir proje ID'si giriniz"),
-    taskId: z.string().uuid("Geçerli bir görev ID'si giriniz").optional(),
+    projectId: z.uuid("Geçerli bir proje ID'si giriniz"),
+    taskId: z.uuid("Geçerli bir görev ID'si giriniz").optional(),
     description: z.string().max(500, "Açıklama çok uzun").optional(),
     billable: z.boolean().default(true),
 });
 
 export const manualTimeEntrySchema = z.object({
-    projectId: z.string().uuid("Geçerli bir proje ID'si giriniz"),
-    taskId: z.string().uuid("Geçerli bir görev ID'si giriniz").optional(),
+    projectId: z.uuid("Geçerli bir proje ID'si giriniz"),
+    taskId: z.uuid("Geçerli bir görev ID'si giriniz").optional(),
     description: z.string().max(500, "Açıklama çok uzun").optional(),
-    started_at: z.string().datetime("Geçerli bir başlangıç zamanı giriniz"),
-    ended_at: z.string().datetime("Geçerli bir bitiş zamanı giriniz"),
+    started_at: z.coerce.date(),
+    ended_at: z.coerce.date(),
     billable: z.boolean().default(true),
 }).refine((data) => new Date(data.ended_at) > new Date(data.started_at), {
     message: "Bitiş zamanı başlangıç zamanından sonra olmalıdır",
@@ -30,10 +30,10 @@ export const manualTimeEntrySchema = z.object({
 export const updateTimeEntrySchema = manualTimeEntrySchema.partial();
 
 export const getTimeReportQuerySchema = z.object({
-    start_date: z.string().datetime().optional(),
-    end_date: z.string().datetime().optional(),
-    project_id: z.string().uuid().optional(),
-    client_id: z.string().uuid().optional(),
+    start_date: z.coerce.date().optional(),
+    end_date: z.coerce.date().optional(),
+    project_id: z.uuid().optional(),
+    client_id: z.uuid().optional(),
     billable: z.coerce.boolean().optional(),
     invoiced: z.coerce.boolean().optional(),
     sort: z.enum(["started_at", "duration_minutes", "project_id"]).default("started_at"),

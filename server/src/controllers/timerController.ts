@@ -3,14 +3,15 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import { TimerService } from "../services/timerService";
 import { AppError } from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
+import { getTimeReportQuerySchema, manualTimeEntrySchema, startTimeEntrySchema } from "../validators/timerSchema";
 
 export const startTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
     const userId = req.user?.id
     if(!userId){
         throw new AppError("User not found",404)
     }
-    const {projectId,taskId,description,billable} = req.body
-    const entry = await TimerService.startTimeEntry(userId,{projectId,taskId,description,billable})
+    const validatedData = startTimeEntrySchema.parse(req.body)
+    const entry = await TimerService.startTimeEntry(userId,validatedData)
     res.status(201).json({
         success:true,
         message:"Timer started successfully",
@@ -41,8 +42,8 @@ export const getActiveTimeEntry = catchAsync(async (req: AuthRequest, res: Respo
 
 export const createManualTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
       const userId = req.user!.id
-      const {projectId,taskId,description,started_at,ended_at,billable} = req.body
-      const entry = await TimerService.createManualTimeEntry(userId,{projectId,taskId,description,started_at,ended_at,billable})
+      const validatedData = manualTimeEntrySchema.parse(req.body)
+      const entry = await TimerService.createManualTimeEntry(userId,validatedData)
       res.status(201).json({
         success:true,
         message:"Manual time entry created successfully",
@@ -51,7 +52,14 @@ export const createManualTimeEntry = catchAsync(async (req: AuthRequest, res: Re
 });
 
 export const getTimeReport = catchAsync(async (req: AuthRequest, res: Response) => {
-    // TODO: Call TimerService.getTimeReport
+    const userId = req.user!.id
+    const validatedQuery = getTimeReportQuerySchema.parse(req.query)
+    const report = await TimerService.getTimeReport(userId, validatedQuery)
+    res.status(200).json({
+        success:true,
+        message:"Time report fetched successfully",
+        data:report
+    })
 });
 
 export const getTimeEntryById = catchAsync(async (req: AuthRequest, res: Response) => {
