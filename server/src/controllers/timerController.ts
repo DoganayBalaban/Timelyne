@@ -19,7 +19,14 @@ export const startTimeEntry = catchAsync(async (req: AuthRequest, res: Response)
 });
 
 export const stopTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
-    // TODO: Call TimerService.stopTimeEntry
+    const userId = req.user!.id
+    const {id} = req.params
+    const entry = await TimerService.stopTimeEntry(userId,id as string)
+    res.status(200).json({
+        success:true,
+        message:"Timer stopped successfully",
+        data:entry
+    })
 });
 
 export const getActiveTimeEntry = catchAsync(async (req: AuthRequest, res: Response) => {
