@@ -11,6 +11,7 @@ import { rateLimiters } from "./middlewares/redisRateLimit";
 import authRoute from "./routes/authRoute";
 import clientRoute from "./routes/clientRoute";
 import projectRoute from "./routes/projectRoute";
+import timerRoute from "./routes/timerRoute";
 import logger from "./utils/logger";
 
 const app = express();
@@ -36,6 +37,7 @@ app.use(morganMiddleware);
 app.use("/api/auth", authRoute);
 app.use("/api/clients", clientRoute);
 app.use("/api/projects",projectRoute)
+app.use("/api/timers",timerRoute)
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();
