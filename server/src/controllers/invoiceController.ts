@@ -5,6 +5,7 @@ import { catchAsync } from "../utils/catchAsync";
 import {
   createInvoiceSchema,
   getInvoiceStatsQuerySchema,
+  updateInvoiceSchema,
 } from "../validators/invoiceSchema";
 
 export const createInvoice = catchAsync(
@@ -48,7 +49,18 @@ export const getInvoiceById = catchAsync(
 
 export const updateInvoice = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement updateInvoice
+    const userId = req.user!.id;
+    const invoiceId = req.params.id;
+    const parsed = updateInvoiceSchema.parse(req.body);
+    const updated = await InvoiceService.updateInvoice(
+      userId,
+      invoiceId as string,
+      parsed,
+    );
+    res.status(200).json({
+      success: true,
+      data: updated,
+    });
   },
 );
 

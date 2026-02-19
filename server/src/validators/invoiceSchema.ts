@@ -43,12 +43,13 @@ export const createInvoiceSchema = z
   );
 
 // Base schema for update to avoid partial check issues if we refine it later
+// Base schema for update
 const baseInvoiceUpdateSchema = z.object({
   clientId: z.uuid("Geçerli bir müşteri ID'si seçiniz"),
-  issueDate: z.coerce.date(),
-  dueDate: z.coerce.date(),
+  issue_date: z.coerce.date(),
+  due_date: z.coerce.date(),
   invoiceNumber: z.string(),
-  items: z.array(invoiceItemSchema),
+  invoice_items: z.array(invoiceItemSchema),
   tax: z.number().min(0),
   discount: z.number().min(0),
   currency: z.string(),

@@ -170,10 +170,92 @@ export class InvoiceService {
     invoiceId: string,
     data: UpdateInvoiceInput,
   ) {
-    // TODO: Fetch existing invoice
-    // TODO: Ensure user owns invoice
-    // TODO: Update fields (recalculate totals if items change)
-    return { message: "Update invoice (TODO)" };
+    return await prisma.$transaction(
+      async (tx) => {
+        const invoice = await tx.invoice.findFirst({
+          where: {
+            id: invoiceId,
+            user_id: userId,
+            deleted_at: null,
+          },
+          include: { invoice_items: true },
+        });
+        if (!invoice) {
+          throw new AppError("Invoice not found", 404);
+        }
+        if (invoice.status === "paid" || invoice.status === "cancelled") {
+          throw new AppError("Cannot modify finalized invoice", 400);
+        }
+        if (data.status) {
+          const validTransactions: Record<string, string[]> = {
+            draft: ["sent", "cancelled"],
+            sent: ["paid", "overdue"],
+            overdue: ["paid"],
+          };
+          const allowed = validTransactions[invoice.status] || [];
+          if (!allowed.includes(data.status)) {
+            throw new AppError("Invalid status transition", 400);
+          }
+        }
+        let subtotal = Number(invoice.subtotal);
+        if (data.invoice_items) {
+          if (invoice.status !== "draft") {
+            throw new AppError(
+              "Items can only be modified in draft status",
+              400,
+            );
+          }
+          await tx.invoiceItem.deleteMany({
+            where: {
+              invoice_id: invoiceId,
+            },
+          });
+          subtotal = 0;
+          const newItems = data.invoice_items.map((item) => {
+            const amount = item.quantity * item.rate;
+            subtotal += amount;
+
+            return {
+              invoice_id: invoiceId,
+              description: item.description,
+              quantity: item.quantity,
+              rate: item.rate,
+              amount,
+            };
+          });
+          await tx.invoiceItem.createMany({
+            data: newItems,
+          });
+        }
+        const tax = Number(invoice.tax);
+        const discount = Number(invoice.discount);
+
+        const total = subtotal + tax - discount;
+
+        if (total <= 0) {
+          throw new AppError("Invoice total must be greater than zero", 400);
+        }
+        const updated = await tx.invoice.update({
+          where: { id: invoiceId },
+          data: {
+            issue_date: data.issue_date,
+            due_date: data.due_date,
+            notes: data.notes,
+            terms: data.terms,
+            status: data.status,
+            subtotal,
+            total,
+          },
+          include: {
+            invoice_items: true,
+          },
+        });
+        return updated;
+      },
+      {
+        isolationLevel: "Serializable",
+      },
+    );
   }
 
   static async deleteInvoice(userId: string, invoiceId: string) {
