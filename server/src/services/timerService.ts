@@ -459,6 +459,16 @@ export class TimerService {
     if (existing.invoiced) {
       throw new AppError("Cannot delete invoiced time entry", 400);
     }
+
+    const redisKey = `user:${userId}:active_timer`;
+    const cached = await redis.get(redisKey);
+    if (cached) {
+      const cachedData = JSON.parse(cached);
+      if (cachedData.id === timerId) {
+        await redis.del(redisKey);
+      }
+    }
+
     await prisma.timeEntry.update({
       where: {
         id: timerId,
