@@ -66,7 +66,13 @@ export const updateInvoice = catchAsync(
 
 export const deleteInvoice = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement deleteInvoice
+    const userId = req.user!.id;
+    const invoiceId = req.params.id;
+    await InvoiceService.deleteInvoice(userId, invoiceId as string);
+    return res.status(200).json({
+      success: true,
+      message: "Invoice deleted successfully",
+    });
   },
 );
 

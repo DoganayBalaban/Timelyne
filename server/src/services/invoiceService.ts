@@ -259,11 +259,43 @@ export class InvoiceService {
   }
 
   static async deleteInvoice(userId: string, invoiceId: string) {
-    // TODO: Fetch invoice
-    // TODO: Check if status allows deletion (e.g. only draft)
-    // TODO: If linked to time entries, unmark them as invoiced
-    // TODO: Soft delete or hard delete based on requirements
-    return { message: "Delete invoice (TODO)" };
+    return await prisma.$transaction(
+      async (tx) => {
+        const invoice = await tx.invoice.findFirst({
+          where: {
+            id: invoiceId,
+            user_id: userId,
+            deleted_at: null,
+          },
+        });
+        if (!invoice) {
+          throw new AppError("Invoice not found", 404);
+        }
+
+        if (invoice.status !== "draft") {
+          throw new AppError("Only draft invoices can be deleted", 400);
+        }
+        await tx.timeEntry.updateMany({
+          where: { invoice_id: invoiceId },
+          data: {
+            invoiced: false,
+            invoice_id: null,
+          },
+        });
+        await tx.invoice.update({
+          where: {
+            id: invoiceId,
+          },
+          data: {
+            deleted_at: new Date(),
+          },
+        });
+        return true;
+      },
+      {
+        isolationLevel: "Serializable",
+      },
+    );
   }
 
   static async generateInvoicePdf(userId: string, invoiceId: string) {
