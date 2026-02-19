@@ -127,9 +127,42 @@ export class InvoiceService {
   }
 
   static async getInvoiceById(userId: string, invoiceId: string) {
-    // TODO: Fetch invoice with items and client details
-    // TODO: Ensure user owns the invoice
-    return { message: "Get invoice by ID (TODO)" };
+    const invoice = await prisma.invoice.findFirst({
+      where: {
+        id: invoiceId,
+        user_id: userId,
+        deleted_at: null,
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            company: true,
+          },
+        },
+        invoice_items: true,
+        time_entries: {
+          where: {
+            deleted_at: null,
+          },
+          select: {
+            id: true,
+            description: true,
+            duration_minutes: true,
+            hourly_rate: true,
+            started_at: true,
+            ended_at: true,
+          },
+        },
+        payments: true,
+      },
+    });
+    if (!invoice) {
+      throw new AppError("Fatura bulunamadı", 404);
+    }
+    return invoice;
   }
 
   static async updateInvoice(

@@ -33,7 +33,16 @@ export const getInvoiceStats = catchAsync(
 
 export const getInvoiceById = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement getInvoiceById
+    const userId = req.user!.id;
+    const invoiceId = req.params.id;
+    const invoice = await InvoiceService.getInvoiceById(
+      userId,
+      invoiceId as string,
+    );
+    return res.status(200).json({
+      success: true,
+      data: invoice,
+    });
   },
 );
 
