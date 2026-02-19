@@ -1,3 +1,5 @@
+import { AppError } from "../utils/appError";
+import { prisma } from "../utils/prisma";
 import {
   CreateInvoiceInput,
   MarkInvoiceAsPaidInput,
@@ -6,12 +8,90 @@ import {
 
 export class InvoiceService {
   static async createInvoice(userId: string, data: CreateInvoiceInput) {
-    // TODO: Validate client ownership
-    // TODO: Calculate subtotal from items or time entries
-    // TODO: Apply tax and discount
-    // TODO: Create invoice and invoice items in transaction
-    // TODO: If time entries used, mark them as invoiced and link to invoice
-    return { message: "Invoice created (TODO)" };
+    return await prisma.$transaction(
+      async (tx) => {
+        if (data.dueDate < data.issueDate) {
+          throw new AppError("Due date cannot be before issue date", 400);
+        }
+        const invoiceCount = await tx.invoice.count({
+          where: { user_id: userId },
+        });
+        const invoiceNumber = `INV-${invoiceCount + 1}`;
+        let subtotal = 0;
+        const invoiceItems: any[] = [];
+        if (data.timeEntryIds?.length) {
+          const timeEntries = await tx.timeEntry.findMany({
+            where: {
+              id: { in: data.timeEntryIds },
+              user_id: userId,
+              deleted_at: null,
+              invoiced: false,
+              billable: true,
+              ended_at: { not: null },
+            },
+          });
+          if (timeEntries.length !== data.timeEntryIds.length) {
+            throw new AppError("Invalid or already invoiced time entries", 400);
+          }
+          for (const entry of timeEntries) {
+            const hours = entry.duration_minutes! / 60;
+            const rate = Number(entry.hourly_rate ?? 0);
+            const amount = hours * rate;
+            subtotal += amount;
+            invoiceItems.push({
+              description: entry.description ?? "Time entry",
+              quantity: hours,
+              rate,
+              amount,
+            });
+          }
+        }
+        const taxAmount = (subtotal * (data.tax ?? 0)) / 100;
+        const discountAmount = (subtotal * (data.discount ?? 0)) / 100;
+
+        const total = subtotal + taxAmount - discountAmount;
+        if (total <= 0) {
+          throw new AppError("Invoice total must be greater than zero", 400);
+        }
+        const invoice = await tx.invoice.create({
+          data: {
+            user_id: userId,
+            client_id: data.clientId,
+            invoice_number: invoiceNumber,
+            issue_date: data.issueDate,
+            due_date: data.dueDate,
+            subtotal,
+            tax: taxAmount,
+            discount: discountAmount,
+            total,
+            currency: data.currency ?? "USD",
+            notes: data.notes,
+            terms: data.terms,
+            invoice_items: {
+              create: invoiceItems,
+            },
+          },
+          include: {
+            invoice_items: true,
+          },
+        });
+        if (data.timeEntryIds?.length) {
+          await tx.timeEntry.updateMany({
+            where: {
+              id: { in: data.timeEntryIds },
+            },
+            data: {
+              invoiced: true,
+              invoice_id: invoice.id,
+            },
+          });
+        }
+        return invoice;
+      },
+      {
+        isolationLevel: "Serializable",
+      },
+    );
   }
 
   static async getInvoiceStats(userId: string) {

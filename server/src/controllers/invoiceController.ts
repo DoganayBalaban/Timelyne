@@ -1,10 +1,18 @@
 import { NextFunction, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { InvoiceService } from "../services/invoiceService";
 import { catchAsync } from "../utils/catchAsync";
+import { createInvoiceSchema } from "../validators/invoiceSchema";
 
 export const createInvoice = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement createInvoice
+    const userId = req.user!.id;
+    const parsed = createInvoiceSchema.parse(req.body);
+    const invoice = InvoiceService.createInvoice(userId, parsed);
+    return res.status(201).json({
+      success: true,
+      data: invoice,
+    });
   },
 );
 
