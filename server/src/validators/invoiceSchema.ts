@@ -67,8 +67,16 @@ export const markInvoiceAsPaidSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const getInvoiceStatsQuerySchema = z.object({
+  start: z.coerce.date().optional(),
+  end: z.coerce.date().optional(),
+});
+
 // --- Inferred Types ---
 export type InvoiceIdParam = z.infer<typeof invoiceIdParamSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
 export type MarkInvoiceAsPaidInput = z.infer<typeof markInvoiceAsPaidSchema>;
+export type GetInvoiceStatsQueryInput = z.infer<
+  typeof getInvoiceStatsQuerySchema
+>;

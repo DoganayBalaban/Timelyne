@@ -2,13 +2,16 @@ import { NextFunction, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { InvoiceService } from "../services/invoiceService";
 import { catchAsync } from "../utils/catchAsync";
-import { createInvoiceSchema } from "../validators/invoiceSchema";
+import {
+  createInvoiceSchema,
+  getInvoiceStatsQuerySchema,
+} from "../validators/invoiceSchema";
 
 export const createInvoice = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     const userId = req.user!.id;
     const parsed = createInvoiceSchema.parse(req.body);
-    const invoice = InvoiceService.createInvoice(userId, parsed);
+    const invoice = await InvoiceService.createInvoice(userId, parsed);
     return res.status(201).json({
       success: true,
       data: invoice,
@@ -18,7 +21,13 @@ export const createInvoice = catchAsync(
 
 export const getInvoiceStats = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement getInvoiceStats
+    const userId = req.user!.id;
+    const { start, end } = getInvoiceStatsQuerySchema.parse(req.query);
+    const stats = await InvoiceService.getInvoiceStats(userId, start, end);
+    return res.status(200).json({
+      success: true,
+      data: stats,
+    });
   },
 );
 

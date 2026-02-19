@@ -94,10 +94,36 @@ export class InvoiceService {
     );
   }
 
-  static async getInvoiceStats(userId: string) {
-    // TODO: Aggregate invoices by status (paid, overdue, draft, etc.)
-    // TODO: Calculate total amounts for each status
-    return { message: "Invoice stats (TODO)" };
+  static async getInvoiceStats(userId: string, start?: Date, end?: Date) {
+    const whereDateFilter =
+      start && end ? `AND issue_date BETWEEN $2 AND $3` : "";
+    const params: any[] = [userId];
+    if (start && end) {
+      params.push(start);
+      params.push(end);
+    }
+    const result = await prisma.$queryRawUnsafe<any[]>(
+      `
+         SELECT
+      COALESCE(SUM(total), 0) AS total_invoiced,
+      COALESCE(SUM(CASE WHEN status = 'paid' THEN total ELSE 0 END), 0) AS total_paid,
+      COALESCE(SUM(CASE WHEN status = 'sent' THEN total ELSE 0 END), 0) AS total_pending,
+      COALESCE(SUM(CASE WHEN status = 'overdue' THEN total ELSE 0 END), 0) AS total_overdue,
+      COALESCE(SUM(CASE WHEN status = 'draft' THEN total ELSE 0 END), 0) AS total_draft
+    FROM invoices
+    WHERE user_id = $1
+      AND deleted_at IS NULL
+      ${whereDateFilter}
+      `,
+      ...params,
+    );
+    return {
+      total_invoiced: Number(result[0].total_invoiced),
+      total_paid: Number(result[0].total_paid),
+      total_pending: Number(result[0].total_pending),
+      total_overdue: Number(result[0].total_overdue),
+      total_draft: Number(result[0].total_draft),
+    };
   }
 
   static async getInvoiceById(userId: string, invoiceId: string) {
