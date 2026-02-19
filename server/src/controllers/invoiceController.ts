@@ -5,6 +5,7 @@ import { catchAsync } from "../utils/catchAsync";
 import {
   createInvoiceSchema,
   getInvoiceStatsQuerySchema,
+  markInvoiceAsPaidSchema,
   updateInvoiceSchema,
 } from "../validators/invoiceSchema";
 
@@ -78,24 +79,69 @@ export const deleteInvoice = catchAsync(
 
 export const generateInvoicePdf = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement generateInvoicePdf
+    const userId = req.user!.id;
+    const invoiceId = req.params.id;
+    const jobId = InvoiceService.generateInvoicePdf(
+      userId,
+      invoiceId as string,
+    );
+    return res.status(200).json({
+      success: true,
+      message: "PDF generation started",
+      jobId,
+    });
   },
 );
 
 export const downloadInvoicePdf = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement downloadInvoicePdf
+    const userId = req.user!.id;
+    const invoiceId = req.params.id;
+
+    const url = await InvoiceService.downloadInvoicePdf(
+      userId,
+      invoiceId as string,
+    );
+
+    return res.status(200).json({
+      success: true,
+      download_url: url,
+    });
   },
 );
 
 export const sendInvoiceEmail = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement sendInvoiceEmail
+    const userId = req.user!.id;
+    const invoiceId = req.params.id;
+
+    const jobId = await InvoiceService.sendInvoiceEmail(
+      userId,
+      invoiceId as string,
+    );
+
+    return res.status(202).json({
+      success: true,
+      message: "Email sending started",
+      jobId,
+    });
   },
 );
 
 export const markInvoiceAsPaid = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // TODO: Implement markInvoiceAsPaid
+    const userId = req.user!.id;
+    const invoiceId = req.params.id;
+    const parsed = markInvoiceAsPaidSchema.parse(req.body);
+    const result = await InvoiceService.markInvoiceAsPaid(
+      userId,
+      invoiceId as string,
+      parsed,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
   },
 );

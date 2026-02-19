@@ -324,10 +324,83 @@ export class InvoiceService {
     invoiceId: string,
     data: MarkInvoiceAsPaidInput,
   ) {
-    // TODO: Check invoice existence
-    // TODO: Create Payment record
-    // TODO: Update invoice status to 'paid'
-    // TODO: Update 'paid_at' field
-    return { message: "Mark as paid (TODO)" };
+    await prisma.$transaction(
+      async (tx) => {
+        const invoice = await tx.invoice.findFirst({
+          where: {
+            id: invoiceId,
+            user_id: userId,
+            deleted_at: null,
+          },
+          include: {
+            payments: true,
+            client: true,
+          },
+        });
+        if (!invoice) {
+          throw new Error("Invoice not found");
+        }
+
+        if (invoice.status === "draft") {
+          throw new Error("Draft invoice cannot receive payment");
+        }
+
+        if (invoice.status === "cancelled") {
+          throw new Error("Cancelled invoice cannot receive payment");
+        }
+        const totalPaidSoFar = invoice.payments.reduce(
+          (sum, p) => sum + Number(p.amount),
+          0,
+        );
+        const remainingAmount = Number(invoice.total) - totalPaidSoFar;
+        if (data.amount! <= 0) {
+          throw new Error("Invalid payment amount");
+        }
+
+        if (data.amount! > remainingAmount) {
+          throw new Error("Payment exceeds remaining balance");
+        }
+        await tx.payment.create({
+          data: {
+            invoice_id: invoiceId,
+            amount: data.amount!,
+            payment_method: data.paymentMethod,
+            reference_number: data.referenceNumber,
+            paid_at: new Date(),
+          },
+        });
+        const newTotalPaid = totalPaidSoFar + data.amount!;
+        let newStatus = invoice.status;
+        if (newTotalPaid >= Number(invoice.total)) {
+          newStatus = "paid";
+        } else {
+          newStatus = "sent"; // partial payment
+        }
+        await tx.invoice.update({
+          where: { id: invoiceId },
+          data: {
+            status: newStatus,
+            paid_at: newStatus === "paid" ? new Date() : invoice.paid_at,
+          },
+        });
+        await tx.client.update({
+          where: { id: invoice.client_id },
+          data: {
+            total_paid: {
+              increment: data.amount,
+            },
+          },
+        });
+        return {
+          invoiceId,
+          paid_amount: data.amount,
+          remaining_balance: Number(invoice.total) - newTotalPaid,
+          status: newStatus,
+        };
+      },
+      {
+        isolationLevel: "Serializable",
+      },
+    );
   }
 }
