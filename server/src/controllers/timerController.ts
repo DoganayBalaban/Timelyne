@@ -113,6 +113,12 @@ export const updateTimeEntry = catchAsync(
 
 export const deleteTimeEntry = catchAsync(
   async (req: AuthRequest, res: Response) => {
-    // TODO: Call TimerService.deleteTimeEntry
+    const userId = req.user!.id;
+    const { id } = req.params;
+    await TimerService.deleteTimeEntry(userId, id as string);
+    return res.status(200).json({
+      success: true,
+      message: "Time entry deleted successfully",
+    });
   },
 );

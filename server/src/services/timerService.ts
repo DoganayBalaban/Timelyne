@@ -446,6 +446,27 @@ export class TimerService {
   }
 
   static async deleteTimeEntry(userId: string, timerId: string) {
-    // TODO: Implement delete time entry logic
+    const existing = await prisma.timeEntry.findFirst({
+      where: {
+        id: timerId,
+        user_id: userId,
+        deleted_at: null,
+      },
+    });
+    if (!existing) {
+      throw new AppError("Time entry not found", 404);
+    }
+    if (existing.invoiced) {
+      throw new AppError("Cannot delete invoiced time entry", 400);
+    }
+    await prisma.timeEntry.update({
+      where: {
+        id: timerId,
+      },
+      data: {
+        deleted_at: new Date(),
+      },
+    });
+    return true;
   }
 }
