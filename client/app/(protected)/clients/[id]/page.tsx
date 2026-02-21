@@ -4,51 +4,54 @@ import { ClientFormDialog } from "@/components/client-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-    useClient,
-    useClientInvoices,
-    useClientProjects,
-    useClientRevenue,
+  useClient,
+  useClientInvoices,
+  useClientProjects,
+  useClientStats,
+  useClientTimeEntries,
 } from "@/lib/hooks/useClients";
 import {
-    ArrowLeft,
-    Banknote,
-    Building2,
-    Clock,
-    FileText,
-    FolderOpen,
-    Mail,
-    MapPin,
-    Pencil,
-    Phone,
-    StickyNote,
-    TrendingUp,
-    User
+  ArrowLeft,
+  Banknote,
+  Building2,
+  Clock,
+  FileText,
+  FolderOpen,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  StickyNote,
+  Timer,
+  TrendingUp,
+  User,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
-// Status badge helpers
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function getProjectStatusLabel(status: string) {
   const map: Record<string, string> = {
-    not_started: "Başlamadı",
-    in_progress: "Devam Ediyor",
+    active: "Aktif",
     on_hold: "Beklemede",
     completed: "Tamamlandı",
     cancelled: "İptal Edildi",
@@ -56,12 +59,16 @@ function getProjectStatusLabel(status: string) {
   return map[status] || status;
 }
 
-function getProjectStatusVariant(status: string) {
-  const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    not_started: "outline",
-    in_progress: "default",
-    on_hold: "secondary",
-    completed: "default",
+function getProjectStatusVariant(
+  status: string,
+): "default" | "secondary" | "destructive" | "outline" {
+  const map: Record<
+    string,
+    "default" | "secondary" | "destructive" | "outline"
+  > = {
+    active: "default",
+    on_hold: "outline",
+    completed: "secondary",
     cancelled: "destructive",
   };
   return map[status] || "secondary";
@@ -74,19 +81,22 @@ function getInvoiceStatusLabel(status: string) {
     paid: "Ödendi",
     overdue: "Gecikmiş",
     cancelled: "İptal Edildi",
-    partially_paid: "Kısmi Ödeme",
   };
   return map[status] || status;
 }
 
-function getInvoiceStatusVariant(status: string) {
-  const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+function getInvoiceStatusVariant(
+  status: string,
+): "default" | "secondary" | "destructive" | "outline" {
+  const map: Record<
+    string,
+    "default" | "secondary" | "destructive" | "outline"
+  > = {
     draft: "outline",
     sent: "secondary",
     paid: "default",
     overdue: "destructive",
     cancelled: "destructive",
-    partially_paid: "secondary",
   };
   return map[status] || "secondary";
 }
@@ -107,6 +117,17 @@ function formatDate(dateStr: string | null | undefined) {
     year: "numeric",
   }).format(new Date(dateStr));
 }
+
+function formatDuration(minutes: number | null | undefined) {
+  if (!minutes) return "—";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}dk`;
+  if (m === 0) return `${h}sa`;
+  return `${h}sa ${m}dk`;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ClientDetailPage() {
   const router = useRouter();
@@ -197,9 +218,7 @@ export default function ClientDetailPage() {
                 icon={<Clock className="h-4 w-4" />}
                 label="Saatlik Ücret"
                 value={
-                  client.hourly_rate
-                    ? formatCurrency(client.hourly_rate)
-                    : null
+                  client.hourly_rate ? formatCurrency(client.hourly_rate) : null
                 }
               />
               <InfoItem
@@ -222,7 +241,7 @@ export default function ClientDetailPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="projects">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="projects" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4" />
               Projeler
@@ -231,9 +250,20 @@ export default function ClientDetailPage() {
               <FileText className="h-4 w-4" />
               Faturalar
             </TabsTrigger>
-            <TabsTrigger value="revenue" className="flex items-center gap-2">
+            <TabsTrigger
+              value="time-entries"
+              className="flex items-center gap-2"
+            >
+              <Timer className="h-4 w-4" />
+              Zaman
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Gelir Analizi
+              İstatistikler
+            </TabsTrigger>
+            <TabsTrigger value="revenue" className="flex items-center gap-2">
+              <Banknote className="h-4 w-4" />
+              Gelir
             </TabsTrigger>
           </TabsList>
 
@@ -242,6 +272,12 @@ export default function ClientDetailPage() {
           </TabsContent>
           <TabsContent value="invoices" className="mt-4">
             <InvoicesTab clientId={clientId} />
+          </TabsContent>
+          <TabsContent value="time-entries" className="mt-4">
+            <TimeEntriesTab clientId={clientId} />
+          </TabsContent>
+          <TabsContent value="stats" className="mt-4">
+            <StatsTab clientId={clientId} />
           </TabsContent>
           <TabsContent value="revenue" className="mt-4">
             <RevenueTab clientId={clientId} />
@@ -258,7 +294,8 @@ export default function ClientDetailPage() {
   );
 }
 
-// Info item component
+// ─── Shared Components ────────────────────────────────────────────────────────
+
 function InfoItem({
   icon,
   label,
@@ -279,38 +316,62 @@ function InfoItem({
   );
 }
 
-// Projects Tab
+function StatCard({
+  title,
+  value,
+  description,
+  icon,
+  highlight = false,
+}: {
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
+  highlight?: boolean;
+}) {
+  return (
+    <Card className={highlight ? "border-amber-500/50" : ""}>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Tab Components ───────────────────────────────────────────────────────────
+
 function ProjectsTab({ clientId }: { clientId: string }) {
   const { data: projects, isLoading } = useClientProjects(clientId);
 
-  if (isLoading) {
+  if (isLoading)
     return (
       <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-14 w-full" />
-            ))}
-          </div>
+        <CardContent className="pt-6 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
         </CardContent>
       </Card>
     );
-  }
 
-  if (!projects || projects.length === 0) {
+  if (!projects || projects.length === 0)
     return (
       <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-12 space-y-2">
-            <FolderOpen className="mx-auto h-10 w-10 text-muted-foreground/50" />
-            <p className="text-muted-foreground">
-              Bu müşteriye ait proje bulunmuyor.
-            </p>
-          </div>
+        <CardContent className="pt-6 text-center py-12 space-y-2">
+          <FolderOpen className="mx-auto h-10 w-10 text-muted-foreground/50" />
+          <p className="text-muted-foreground">
+            Bu müşteriye ait proje bulunmuyor.
+          </p>
         </CardContent>
       </Card>
     );
-  }
 
   return (
     <Card>
@@ -329,7 +390,9 @@ function ProjectsTab({ clientId }: { clientId: string }) {
                 <TableHead className="hidden md:table-cell">
                   Başlangıç
                 </TableHead>
-                <TableHead className="hidden lg:table-cell">Bitiş</TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  Son Tarih
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -348,7 +411,8 @@ function ProjectsTab({ clientId }: { clientId: string }) {
                     {formatDate(project.start_date)}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    {formatDate(project.end_date)}
+                    {/* backend field is 'deadline', not 'end_date' */}
+                    {formatDate(project.deadline)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -360,38 +424,31 @@ function ProjectsTab({ clientId }: { clientId: string }) {
   );
 }
 
-// Invoices Tab
 function InvoicesTab({ clientId }: { clientId: string }) {
   const { data: invoices, isLoading } = useClientInvoices(clientId);
 
-  if (isLoading) {
+  if (isLoading)
     return (
       <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-14 w-full" />
-            ))}
-          </div>
+        <CardContent className="pt-6 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
         </CardContent>
       </Card>
     );
-  }
 
-  if (!invoices || invoices.length === 0) {
+  if (!invoices || invoices.length === 0)
     return (
       <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-12 space-y-2">
-            <FileText className="mx-auto h-10 w-10 text-muted-foreground/50" />
-            <p className="text-muted-foreground">
-              Bu müşteriye ait fatura bulunmuyor.
-            </p>
-          </div>
+        <CardContent className="pt-6 text-center py-12 space-y-2">
+          <FileText className="mx-auto h-10 w-10 text-muted-foreground/50" />
+          <p className="text-muted-foreground">
+            Bu müşteriye ait fatura bulunmuyor.
+          </p>
         </CardContent>
       </Card>
     );
-  }
 
   return (
     <Card>
@@ -445,11 +502,201 @@ function InvoicesTab({ clientId }: { clientId: string }) {
   );
 }
 
-// Revenue Tab
-function RevenueTab({ clientId }: { clientId: string }) {
-  const { data: revenue, isLoading } = useClientRevenue(clientId);
+function TimeEntriesTab({ clientId }: { clientId: string }) {
+  const { data, isLoading } = useClientTimeEntries(clientId);
+  const entries = data?.data;
 
-  if (isLoading) {
+  if (isLoading)
+    return (
+      <Card>
+        <CardContent className="pt-6 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+
+  if (!entries || entries.length === 0)
+    return (
+      <Card>
+        <CardContent className="pt-6 text-center py-12 space-y-2">
+          <Timer className="mx-auto h-10 w-10 text-muted-foreground/50" />
+          <p className="text-muted-foreground">
+            Bu müşteriye ait zaman kaydı bulunmuyor.
+          </p>
+        </CardContent>
+      </Card>
+    );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Zaman Kayıtları</CardTitle>
+        <CardDescription>
+          {data?.meta.total ?? entries.length} kayıt
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tarih</TableHead>
+                <TableHead>Açıklama</TableHead>
+                <TableHead className="hidden md:table-cell">Proje</TableHead>
+                <TableHead>Süre</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Faturalanabilir
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entries.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell className="font-medium">
+                    {formatDate(entry.started_at)}
+                  </TableCell>
+                  <TableCell>
+                    <span className="line-clamp-1">
+                      {entry.description || "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {entry.project ? (
+                      <Badge variant="secondary">{entry.project.name}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {formatDuration(entry.duration_minutes)}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {entry.billable ? (
+                      <Badge variant="default">Evet</Badge>
+                    ) : (
+                      <Badge variant="outline">Hayır</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatsTab({ clientId }: { clientId: string }) {
+  const { data: stats, isLoading } = useClientStats(clientId);
+
+  if (isLoading)
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-32" />
+        ))}
+      </div>
+    );
+
+  if (!stats)
+    return (
+      <Card>
+        <CardContent className="pt-6 text-center py-12">
+          <TrendingUp className="mx-auto h-10 w-10 text-muted-foreground/50" />
+          <p className="text-muted-foreground mt-2">
+            İstatistik verisi yüklenemedi.
+          </p>
+        </CardContent>
+      </Card>
+    );
+
+  const invoicePaidPercent =
+    stats.total_invoice_count > 0
+      ? (stats.paid_invoice_count / stats.total_invoice_count) * 100
+      : 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Invoice progress */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Fatura Durumu
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Tahsilat ilerleme</span>
+            <span className="font-medium">
+              {stats.paid_invoice_count}/{stats.total_invoice_count} fatura
+              ödendi
+            </span>
+          </div>
+          <Progress value={invoicePaidPercent} className="h-2" />
+          <div className="grid grid-cols-3 gap-4 pt-2">
+            <div className="text-center">
+              <p className="text-2xl font-bold">{stats.total_invoice_count}</p>
+              <p className="text-xs text-muted-foreground">Toplam</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{stats.open_invoice_count}</p>
+              <p className="text-xs text-muted-foreground">Açık</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{stats.paid_invoice_count}</p>
+              <p className="text-xs text-muted-foreground">Ödendi</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stat cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          title="Toplam Gelir"
+          value={formatCurrency(stats.total_revenue)}
+          description="Faturalandırılan tutar"
+          icon={<TrendingUp className="h-5 w-5 text-emerald-500" />}
+        />
+        <StatCard
+          title="Tahsil Edilen"
+          value={formatCurrency(stats.total_paid)}
+          description="Alınan toplam ödeme"
+          icon={<Banknote className="h-5 w-5 text-blue-500" />}
+        />
+        <StatCard
+          title="Bekleyen"
+          value={formatCurrency(stats.outstanding)}
+          description="Ödenmemiş tutar"
+          icon={<Clock className="h-5 w-5 text-amber-500" />}
+          highlight={stats.outstanding > 0}
+        />
+        <StatCard
+          title="Proje Sayısı"
+          value={stats.project_count.toString()}
+          description="Aktif proje"
+          icon={<FolderOpen className="h-5 w-5 text-purple-500" />}
+        />
+        <StatCard
+          title="Takip Edilen Saat"
+          value={`${stats.total_tracked_hours} sa`}
+          description={`${stats.time_entry_count} zaman kaydı`}
+          icon={<Timer className="h-5 w-5 text-indigo-500" />}
+        />
+      </div>
+    </div>
+  );
+}
+
+function RevenueTab({ clientId }: { clientId: string }) {
+  // Revenue is a subset of stats — reuse for a lightweight view
+  const { data: stats, isLoading } = useClientStats(clientId);
+
+  if (isLoading)
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -457,86 +704,52 @@ function RevenueTab({ clientId }: { clientId: string }) {
         ))}
       </div>
     );
-  }
 
-  if (!revenue) {
+  if (!stats)
     return (
       <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-12 space-y-2">
-            <TrendingUp className="mx-auto h-10 w-10 text-muted-foreground/50" />
-            <p className="text-muted-foreground">
-              Gelir verisi yüklenemedi.
-            </p>
-          </div>
+        <CardContent className="pt-6 text-center py-12">
+          <TrendingUp className="mx-auto h-10 w-10 text-muted-foreground/50" />
+          <p className="text-muted-foreground mt-2">
+            Gelir verisi yüklenemedi.
+          </p>
         </CardContent>
       </Card>
     );
-  }
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <RevenueCard
+      <StatCard
         title="Toplam Gelir"
-        value={formatCurrency(revenue.total_revenue)}
+        value={formatCurrency(stats.total_revenue)}
         description="Tüm faturalardan elde edilen gelir"
         icon={<TrendingUp className="h-5 w-5 text-emerald-500" />}
       />
-      <RevenueCard
+      <StatCard
         title="Toplam Ödenen"
-        value={formatCurrency(revenue.total_paid)}
+        value={formatCurrency(stats.total_paid)}
         description="Alınan toplam ödeme"
         icon={<Banknote className="h-5 w-5 text-blue-500" />}
       />
-      <RevenueCard
+      <StatCard
         title="Bekleyen"
-        value={formatCurrency(revenue.outstanding)}
+        value={formatCurrency(stats.outstanding)}
         description="Henüz ödenmemiş tutar"
         icon={<Clock className="h-5 w-5 text-amber-500" />}
-        highlight={revenue.outstanding > 0}
+        highlight={stats.outstanding > 0}
       />
-      <RevenueCard
+      <StatCard
         title="Toplam Fatura"
-        value={revenue.invoice_count.toString()}
+        value={stats.total_invoice_count.toString()}
         description="Kesilen fatura sayısı"
         icon={<FileText className="h-5 w-5 text-muted-foreground" />}
       />
-      <RevenueCard
+      <StatCard
         title="Ödenen Fatura"
-        value={revenue.paid_invoice_count.toString()}
+        value={stats.paid_invoice_count.toString()}
         description="Ödemesi tamamlanan faturalar"
         icon={<FileText className="h-5 w-5 text-emerald-500" />}
       />
     </div>
-  );
-}
-
-// Revenue card component
-function RevenueCard({
-  title,
-  value,
-  description,
-  icon,
-  highlight = false,
-}: {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
-  highlight?: boolean;
-}) {
-  return (
-    <Card className={highlight ? "border-amber-500/50" : ""}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
-      </CardContent>
-    </Card>
   );
 }

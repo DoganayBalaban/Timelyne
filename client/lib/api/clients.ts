@@ -1,6 +1,7 @@
 import api from "./client";
 
-// Types
+// ─── Entity Types ───────────────────────────────────────────────────────────
+
 export interface Client {
   id: string;
   user_id: string;
@@ -16,23 +17,75 @@ export interface Client {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
-}
-
-export interface ClientsResponse {
-  message: string;
-  data: {
-    clients: Client[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
+  // _count added by getClientById
+  _count?: {
+    projects: number;
+    invoices: number;
   };
 }
 
-export interface ClientResponse {
-  message: string;
-  data: Client;
+export interface ClientProject {
+  id: string;
+  name: string;
+  status: string;
+  budget: number | null;
+  hourly_rate: number | null;
+  total_tracked_hours: number;
+  total_billed: number;
+  start_date: string | null;
+  deadline: string | null;
+  color: string | null;
+  created_at: string;
 }
+
+export interface ClientInvoice {
+  id: string;
+  invoice_number: string;
+  issue_date: string;
+  due_date: string;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  currency: string;
+  status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
+  paid_at: string | null;
+  created_at: string;
+}
+
+export interface ClientTimeEntry {
+  id: string;
+  description: string | null;
+  started_at: string;
+  ended_at: string | null;
+  duration_minutes: number | null;
+  billable: boolean;
+  invoiced: boolean;
+  hourly_rate: number | null;
+  project: { id: string; name: string } | null;
+}
+
+export interface ClientStats {
+  total_revenue: number;
+  total_paid: number;
+  outstanding: number;
+  total_invoice_count: number;
+  paid_invoice_count: number;
+  open_invoice_count: number;
+  project_count: number;
+  total_tracked_hours: string; // toFixed(2) string from backend
+  time_entry_count: number;
+}
+
+export interface RevenueData {
+  total_revenue: number;
+  total_paid: number;
+  outstanding: number;
+  invoice_count: number;
+  paid_invoice_count: number;
+}
+
+// ─── Request / Response Types ────────────────────────────────────────────────
 
 export interface ClientsQueryParams {
   page?: number;
@@ -52,92 +105,75 @@ export interface CreateClientData {
   hourly_rate?: number;
 }
 
-export interface UpdateClientData {
-  name?: string;
-  company?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  notes?: string;
-  hourly_rate?: number;
+export type UpdateClientData = Partial<CreateClientData>;
+
+// Response shapes ─ mirrors backend controller returns exactly
+export interface ClientsListResponse {
+  message: string;
+  data: {
+    clients: Client[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
-export interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  status: string;
-  budget: number | null;
-  currency: string;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string;
+export interface ClientResponse {
+  message: string;
+  data: Client;
 }
 
-export interface Invoice {
-  id: string;
-  invoice_number: string;
-  issue_date: string;
-  due_date: string;
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-  currency: string;
-  status: string;
-  paid_at: string | null;
-  created_at: string;
-}
+// ─── API Functions ───────────────────────────────────────────────────────────
 
-export interface RevenueData {
-  total_revenue: number;
-  total_paid: number;
-  outstanding: number;
-  invoice_count: number;
-  paid_invoice_count: number;
-}
-
-// API Functions
 export const clientsApi = {
-  getClients: async (params?: ClientsQueryParams): Promise<ClientsResponse> => {
-    const response = await api.get("/clients", { params });
-    return response.data;
-  },
+  // CRUD
+  getClients: (params?: ClientsQueryParams): Promise<ClientsListResponse> =>
+    api.get("/clients", { params }).then((r) => r.data),
 
-  getClient: async (id: string): Promise<ClientResponse> => {
-    const response = await api.get(`/clients/${id}`);
-    return response.data;
-  },
+  getClient: (id: string): Promise<ClientResponse> =>
+    api.get(`/clients/${id}`).then((r) => r.data),
 
-  createClient: async (data: CreateClientData): Promise<ClientResponse> => {
-    const response = await api.post("/clients", data);
-    return response.data;
-  },
+  createClient: (data: CreateClientData): Promise<ClientResponse> =>
+    api.post("/clients", data).then((r) => r.data),
 
-  updateClient: async (id: string, data: UpdateClientData): Promise<ClientResponse> => {
-    const response = await api.patch(`/clients/${id}`, data);
-    return response.data;
-  },
+  updateClient: (id: string, data: UpdateClientData): Promise<ClientResponse> =>
+    api.patch(`/clients/${id}`, data).then((r) => r.data),
 
-  deleteClient: async (id: string): Promise<{ message: string; data: null }> => {
-    const response = await api.delete(`/clients/${id}`);
-    return response.data;
-  },
+  deleteClient: (id: string): Promise<{ message: string; data: null }> =>
+    api.delete(`/clients/${id}`).then((r) => r.data),
 
-  getClientProjects: async (id: string): Promise<{ message: string; data: Project[] }> => {
-    const response = await api.get(`/clients/${id}/projects`);
-    return response.data;
-  },
+  // Sub-resources
+  getClientProjects: (
+    id: string,
+  ): Promise<{ message: string; data: ClientProject[] }> =>
+    api.get(`/clients/${id}/projects`).then((r) => r.data),
 
-  getClientInvoices: async (id: string): Promise<{ message: string; data: Invoice[] }> => {
-    const response = await api.get(`/clients/${id}/invoices`);
-    return response.data;
-  },
+  getClientInvoices: (
+    id: string,
+  ): Promise<{ message: string; data: ClientInvoice[] }> =>
+    api.get(`/clients/${id}/invoices`).then((r) => r.data),
 
-  getClientRevenue: async (id: string): Promise<{ message: string; data: RevenueData }> => {
-    const response = await api.get(`/clients/${id}/revenue`);
-    return response.data;
-  },
+  getClientRevenue: (
+    id: string,
+  ): Promise<{ message: string; data: RevenueData }> =>
+    api.get(`/clients/${id}/revenue`).then((r) => r.data),
+
+  getClientStats: (
+    id: string,
+  ): Promise<{ message: string; data: ClientStats }> =>
+    api.get(`/clients/${id}/stats`).then((r) => r.data),
+
+  getClientTimeEntries: (
+    id: string,
+    params?: { page?: number; limit?: number },
+  ): Promise<{
+    message: string;
+    data: {
+      data: ClientTimeEntry[];
+      meta: { total: number; page: number; limit: number; totalPages: number };
+    };
+  }> => api.get(`/clients/${id}/time-entries`, { params }).then((r) => r.data),
 };
 
 export default clientsApi;

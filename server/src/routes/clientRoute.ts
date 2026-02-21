@@ -1,13 +1,15 @@
 import express from "express";
 import {
-    createClient,
-    deleteClient,
-    getAllClients,
-    getClientById,
-    getClientInvoices,
-    getClientProjects,
-    getClientRevenue,
-    updateClient,
+  createClient,
+  deleteClient,
+  getAllClients,
+  getClientById,
+  getClientInvoices,
+  getClientProjects,
+  getClientRevenue,
+  getClientStats,
+  getClientTimeEntries,
+  updateClient,
 } from "../controllers/clientControllers";
 import { protect } from "../middlewares/authMiddleware";
 
@@ -21,6 +23,8 @@ router.post("/", protect, createClient);
 router.get("/:id/projects", protect, getClientProjects);
 router.get("/:id/invoices", protect, getClientInvoices);
 router.get("/:id/revenue", protect, getClientRevenue);
+router.get("/:id/stats", protect, getClientStats);
+router.get("/:id/time-entries", protect, getClientTimeEntries);
 
 // Parameterized routes
 router.get("/:id", protect, getClientById);

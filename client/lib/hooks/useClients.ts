@@ -1,36 +1,39 @@
 "use client";
 
 import {
-    clientsApi,
-    ClientsQueryParams,
-    CreateClientData,
-    UpdateClientData,
+  clientsApi,
+  ClientsQueryParams,
+  CreateClientData,
+  UpdateClientData,
 } from "@/lib/api/clients";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-// List clients with pagination/search/sort
+// ─── List ──────────────────────────────────────────────────────────────────
+
 export function useClients(params?: ClientsQueryParams) {
   return useQuery({
     queryKey: ["clients", params],
     queryFn: () => clientsApi.getClients(params),
-    select: (data) => data.data,
+    // Unwrap the nested data shape so callers get { clients, total, page, ... }
+    select: (res) => res.data,
   });
 }
 
-// Single client
+// ─── Single ────────────────────────────────────────────────────────────────
+
 export function useClient(id: string) {
   return useQuery({
     queryKey: ["clients", id],
     queryFn: () => clientsApi.getClient(id),
-    select: (data) => data.data,
+    select: (res) => res.data,
     enabled: !!id,
   });
 }
 
-// Create client
+// ─── Mutations ─────────────────────────────────────────────────────────────
+
 export function useCreateClient() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (data: CreateClientData) => clientsApi.createClient(data),
     onSuccess: () => {
@@ -39,10 +42,8 @@ export function useCreateClient() {
   });
 }
 
-// Update client
 export function useUpdateClient() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateClientData }) =>
       clientsApi.updateClient(id, data),
@@ -53,10 +54,8 @@ export function useUpdateClient() {
   });
 }
 
-// Delete client
 export function useDeleteClient() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (id: string) => clientsApi.deleteClient(id),
     onSuccess: () => {
@@ -65,32 +64,54 @@ export function useDeleteClient() {
   });
 }
 
-// Client projects
+// ─── Sub-resources ─────────────────────────────────────────────────────────
+
 export function useClientProjects(id: string) {
   return useQuery({
     queryKey: ["clients", id, "projects"],
     queryFn: () => clientsApi.getClientProjects(id),
-    select: (data) => data.data,
+    select: (res) => res.data,
     enabled: !!id,
   });
 }
 
-// Client invoices
 export function useClientInvoices(id: string) {
   return useQuery({
     queryKey: ["clients", id, "invoices"],
     queryFn: () => clientsApi.getClientInvoices(id),
-    select: (data) => data.data,
+    select: (res) => res.data,
     enabled: !!id,
   });
 }
 
-// Client revenue
 export function useClientRevenue(id: string) {
   return useQuery({
     queryKey: ["clients", id, "revenue"],
     queryFn: () => clientsApi.getClientRevenue(id),
-    select: (data) => data.data,
+    select: (res) => res.data,
+    enabled: !!id,
+  });
+}
+
+// New — mirrors useProjectStats pattern
+export function useClientStats(id: string) {
+  return useQuery({
+    queryKey: ["clients", id, "stats"],
+    queryFn: () => clientsApi.getClientStats(id),
+    select: (res) => res.data,
+    enabled: !!id,
+  });
+}
+
+// New — mirrors useProjectTimeEntries pattern
+export function useClientTimeEntries(
+  id: string,
+  params?: { page?: number; limit?: number },
+) {
+  return useQuery({
+    queryKey: ["clients", id, "time-entries", params],
+    queryFn: () => clientsApi.getClientTimeEntries(id, params),
+    select: (res) => res.data,
     enabled: !!id,
   });
 }
