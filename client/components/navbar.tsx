@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useLogout, useUser } from "@/lib/hooks/useAuth";
 import {
-    FolderOpen,
-    LayoutDashboard,
-    Loader2,
-    LogOut,
-    Users,
+  FolderOpen,
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  Timer,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +30,11 @@ const navItems = [
     label: "Projeler",
     href: "/projects",
     icon: FolderOpen,
+  },
+  {
+    label: "Zaman",
+    href: "/time-entries",
+    icon: Timer,
   },
 ];
 
