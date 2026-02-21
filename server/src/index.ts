@@ -14,6 +14,9 @@ import invoiceRoute from "./routes/invoiceRoute";
 import projectRoute from "./routes/projectRoute";
 import timerRoute from "./routes/timerRoute";
 import logger from "./utils/logger";
+// Register BullMQ workers — must be imported so workers start listening
+import "./workers/emailWorker";
+import "./workers/pdfWorker";
 
 const app = express();
 

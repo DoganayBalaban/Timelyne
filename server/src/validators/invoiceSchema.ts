@@ -73,6 +73,19 @@ export const getInvoiceStatsQuerySchema = z.object({
   end: z.coerce.date().optional(),
 });
 
+export const getInvoicesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(["draft", "sent", "paid", "overdue", "cancelled"]).optional(),
+  clientId: z.string().uuid().optional(),
+  start: z.coerce.date().optional(),
+  end: z.coerce.date().optional(),
+  sortBy: z
+    .enum(["issue_date", "due_date", "total", "created_at"])
+    .default("created_at"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
+
 // --- Inferred Types ---
 export type InvoiceIdParam = z.infer<typeof invoiceIdParamSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
@@ -81,3 +94,4 @@ export type MarkInvoiceAsPaidInput = z.infer<typeof markInvoiceAsPaidSchema>;
 export type GetInvoiceStatsQueryInput = z.infer<
   typeof getInvoiceStatsQuerySchema
 >;
+export type GetInvoicesQueryInput = z.infer<typeof getInvoicesQuerySchema>;

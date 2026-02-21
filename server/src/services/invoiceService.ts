@@ -1,7 +1,11 @@
+import { emailQueue } from "../queues/emailQueue";
+import { pdfQueue } from "../queues/pdfQueue";
 import { AppError } from "../utils/appError";
 import { prisma } from "../utils/prisma";
+import { getSignedDownloadUrl } from "../utils/storageUpload";
 import {
   CreateInvoiceInput,
+  GetInvoicesQueryInput,
   MarkInvoiceAsPaidInput,
   UpdateInvoiceInput,
 } from "../validators/invoiceSchema";
@@ -19,6 +23,8 @@ export class InvoiceService {
         const invoiceNumber = `INV-${invoiceCount + 1}`;
         let subtotal = 0;
         const invoiceItems: any[] = [];
+
+        // ── Path A: from time entries ──────────────────────────────────────
         if (data.timeEntryIds?.length) {
           const timeEntries = await tx.timeEntry.findMany({
             where: {
@@ -46,6 +52,28 @@ export class InvoiceService {
             });
           }
         }
+
+        // ── Path B: manual line items ──────────────────────────────────────
+        if (data.items?.length) {
+          for (const item of data.items) {
+            const amount = item.quantity * item.rate;
+            subtotal += amount;
+            invoiceItems.push({
+              description: item.description,
+              quantity: item.quantity,
+              rate: item.rate,
+              amount,
+            });
+          }
+        }
+
+        if (invoiceItems.length === 0) {
+          throw new AppError(
+            "Invoice must have at least one item or time entry",
+            400,
+          );
+        }
+
         const taxAmount = (subtotal * (data.tax ?? 0)) / 100;
         const discountAmount = (subtotal * (data.discount ?? 0)) / 100;
 
@@ -77,13 +105,8 @@ export class InvoiceService {
         });
         if (data.timeEntryIds?.length) {
           await tx.timeEntry.updateMany({
-            where: {
-              id: { in: data.timeEntryIds },
-            },
-            data: {
-              invoiced: true,
-              invoice_id: invoice.id,
-            },
+            where: { id: { in: data.timeEntryIds } },
+            data: { invoiced: true, invoice_id: invoice.id },
           });
         }
         return invoice;
@@ -92,6 +115,59 @@ export class InvoiceService {
         isolationLevel: "Serializable",
       },
     );
+  }
+
+  static async getInvoices(userId: string, query: GetInvoicesQueryInput) {
+    const { page, limit, status, clientId, start, end, sortBy, sortOrder } =
+      query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      user_id: userId,
+      deleted_at: null,
+      ...(status && { status }),
+      ...(clientId && { client_id: clientId }),
+      ...(start &&
+        end && {
+          issue_date: { gte: start, lte: end },
+        }),
+    };
+
+    const [invoices, total] = await Promise.all([
+      prisma.invoice.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+        select: {
+          id: true,
+          invoice_number: true,
+          issue_date: true,
+          due_date: true,
+          total: true,
+          currency: true,
+          status: true,
+          pdf_status: true,
+          sent_at: true,
+          paid_at: true,
+          created_at: true,
+          client: {
+            select: { id: true, name: true, company: true, email: true },
+          },
+        },
+      }),
+      prisma.invoice.count({ where }),
+    ]);
+
+    return {
+      data: invoices,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   static async getInvoiceStats(userId: string, start?: Date, end?: Date) {
@@ -298,25 +374,136 @@ export class InvoiceService {
     );
   }
 
-  static async generateInvoicePdf(userId: string, invoiceId: string) {
-    // TODO: Check invoice existence
-    // TODO: Trigger PDF generation (Puppeteer/Queue)
-    // TODO: Upload to S3/Storage and save URL
-    return { message: "Generate PDF (TODO)" };
+  /**
+   * Idempotent — enqueues a PDF generation job for an invoice.
+   *
+   * State machine:
+   *   not_generated | failed → processing → (worker) → generated | failed
+   *
+   * @param force Re-generate even if pdf_status === "generated"
+   * @returns BullMQ job id (string | number)
+   */
+  static async enqueuePdfGeneration(
+    userId: string,
+    invoiceId: string,
+    force = false,
+  ): Promise<string | number | undefined> {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, user_id: userId, deleted_at: null },
+      select: { id: true, status: true, pdf_status: true },
+    });
+
+    if (!invoice) {
+      throw new AppError("Invoice not found", 404);
+    }
+
+    if (invoice.status === "draft") {
+      throw new AppError("Draft invoice cannot generate PDF", 400);
+    }
+
+    // Idempotent: already generated and no force flag
+    if (!force && invoice.pdf_status === "generated") {
+      return invoiceId;
+    }
+
+    // Already in-flight — don't double-queue
+    if (invoice.pdf_status === "processing") {
+      return invoiceId;
+    }
+
+    // Mark as processing before enqueuing (ACID-safe optimistic lock)
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { pdf_status: "processing" },
+    });
+
+    const job = await pdfQueue.add("generate-invoice-pdf", { invoiceId });
+
+    return job.id;
   }
 
-  static async downloadInvoicePdf(userId: string, invoiceId: string) {
-    // TODO: Check invoice existence
-    // TODO: Return signed URL or file stream
-    return { message: "Download PDF (TODO)" };
+  // Keep backward-compat alias used by the controller
+  static async generateInvoicePdf(
+    userId: string,
+    invoiceId: string,
+    force = false,
+  ) {
+    return InvoiceService.enqueuePdfGeneration(userId, invoiceId, force);
   }
 
+  /**
+   * Returns a pre-signed S3 URL (1 hour TTL) for downloading the invoice PDF.
+   * Throws 400 if PDF has not been generated yet.
+   */
+  static async downloadInvoicePdf(
+    userId: string,
+    invoiceId: string,
+  ): Promise<string> {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, user_id: userId, deleted_at: null },
+      select: { pdf_status: true, pdf_url: true },
+    });
+
+    if (!invoice) {
+      throw new AppError("Invoice not found", 404);
+    }
+
+    if (invoice.pdf_status !== "generated" || !invoice.pdf_url) {
+      throw new AppError(
+        `PDF is not ready yet (status: ${invoice.pdf_status})`,
+        400,
+      );
+    }
+
+    return getSignedDownloadUrl(invoice.pdf_url);
+  }
+
+  /**
+   * Idempotent — enqueues an email delivery job for an invoice.
+   *
+   * Guards:
+   *  - Invoice must exist and belong to the user
+   *  - Status must not be draft or cancelled
+   *  - PDF must already be generated (pdf_status === "generated")
+   *
+   * @returns BullMQ job id
+   */
+  static async enqueueInvoiceEmail(
+    userId: string,
+    invoiceId: string,
+  ): Promise<string | number | undefined> {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, user_id: userId, deleted_at: null },
+      select: { id: true, status: true, pdf_status: true, pdf_url: true },
+    });
+
+    if (!invoice) {
+      throw new AppError("Invoice not found", 404);
+    }
+
+    if (invoice.status === "draft") {
+      throw new AppError("Draft invoice cannot be emailed", 400);
+    }
+
+    if (invoice.status === "cancelled") {
+      throw new AppError("Cancelled invoice cannot be emailed", 400);
+    }
+
+    if (invoice.pdf_status !== "generated" || !invoice.pdf_url) {
+      throw new AppError(
+        `Invoice PDF is not ready yet (pdf_status: ${invoice.pdf_status}). Generate the PDF first.`,
+        400,
+      );
+    }
+
+    const job = await emailQueue.add("send-invoice-email", { invoiceId });
+
+    return job.id;
+  }
+
+  // Backward-compat alias called by the existing controller
   static async sendInvoiceEmail(userId: string, invoiceId: string) {
-    // TODO: Check invoice existence
-    // TODO: Generate PDF if not exists
-    // TODO: Send email to client
-    // TODO: Update status to 'sent' if draft
-    return { message: "Send email (TODO)" };
+    return InvoiceService.enqueueInvoiceEmail(userId, invoiceId);
   }
 
   static async markInvoiceAsPaid(
@@ -324,7 +511,7 @@ export class InvoiceService {
     invoiceId: string,
     data: MarkInvoiceAsPaidInput,
   ) {
-    await prisma.$transaction(
+    return await prisma.$transaction(
       async (tx) => {
         const invoice = await tx.invoice.findFirst({
           where: {
@@ -353,47 +540,55 @@ export class InvoiceService {
           0,
         );
         const remainingAmount = Number(invoice.total) - totalPaidSoFar;
-        if (data.amount! <= 0) {
-          throw new Error("Invalid payment amount");
+        const paymentAmount = data.amount ?? remainingAmount;
+
+        if (paymentAmount <= 0) {
+          throw new AppError("Invalid payment amount", 400);
         }
 
-        if (data.amount! > remainingAmount) {
-          throw new Error("Payment exceeds remaining balance");
+        if (paymentAmount > remainingAmount) {
+          throw new AppError("Payment exceeds remaining balance", 400);
         }
+
         await tx.payment.create({
           data: {
             invoice_id: invoiceId,
-            amount: data.amount!,
+            amount: paymentAmount,
             payment_method: data.paymentMethod,
             reference_number: data.referenceNumber,
-            paid_at: new Date(),
+            paid_at: data.paidAt,
+            notes: data.notes,
           },
         });
-        const newTotalPaid = totalPaidSoFar + data.amount!;
+
+        const newTotalPaid = totalPaidSoFar + paymentAmount;
         let newStatus = invoice.status;
         if (newTotalPaid >= Number(invoice.total)) {
           newStatus = "paid";
         } else {
-          newStatus = "sent"; // partial payment
+          newStatus = "sent";
         }
+
         await tx.invoice.update({
           where: { id: invoiceId },
           data: {
             status: newStatus,
-            paid_at: newStatus === "paid" ? new Date() : invoice.paid_at,
+            paid_at: newStatus === "paid" ? data.paidAt : invoice.paid_at,
           },
         });
+
         await tx.client.update({
           where: { id: invoice.client_id },
           data: {
             total_paid: {
-              increment: data.amount,
+              increment: paymentAmount,
             },
           },
         });
+
         return {
           invoiceId,
-          paid_amount: data.amount,
+          paid_amount: paymentAmount,
           remaining_balance: Number(invoice.total) - newTotalPaid,
           status: newStatus,
         };

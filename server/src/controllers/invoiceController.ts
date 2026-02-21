@@ -4,6 +4,7 @@ import { InvoiceService } from "../services/invoiceService";
 import { catchAsync } from "../utils/catchAsync";
 import {
   createInvoiceSchema,
+  getInvoicesQuerySchema,
   getInvoiceStatsQuerySchema,
   markInvoiceAsPaidSchema,
   updateInvoiceSchema,
@@ -17,6 +18,18 @@ export const createInvoice = catchAsync(
     return res.status(201).json({
       success: true,
       data: invoice,
+    });
+  },
+);
+
+export const getInvoices = catchAsync(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userId = req.user!.id;
+    const query = getInvoicesQuerySchema.parse(req.query);
+    const result = await InvoiceService.getInvoices(userId, query);
+    return res.status(200).json({
+      success: true,
+      ...result,
     });
   },
 );
@@ -81,11 +94,15 @@ export const generateInvoicePdf = catchAsync(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     const userId = req.user!.id;
     const invoiceId = req.params.id;
-    const jobId = InvoiceService.generateInvoicePdf(
+    const force = req.query.force === "true";
+
+    const jobId = await InvoiceService.generateInvoicePdf(
       userId,
       invoiceId as string,
+      force,
     );
-    return res.status(200).json({
+
+    return res.status(202).json({
       success: true,
       message: "PDF generation started",
       jobId,
@@ -98,14 +115,14 @@ export const downloadInvoicePdf = catchAsync(
     const userId = req.user!.id;
     const invoiceId = req.params.id;
 
-    const url = await InvoiceService.downloadInvoicePdf(
+    const signedUrl = await InvoiceService.downloadInvoicePdf(
       userId,
       invoiceId as string,
     );
 
     return res.status(200).json({
       success: true,
-      download_url: url,
+      download_url: signedUrl,
     });
   },
 );

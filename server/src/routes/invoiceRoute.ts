@@ -5,6 +5,7 @@ import {
   downloadInvoicePdf,
   generateInvoicePdf,
   getInvoiceById,
+  getInvoices,
   getInvoiceStats,
   markInvoiceAsPaid,
   sendInvoiceEmail,
@@ -15,6 +16,7 @@ import { protect } from "../middlewares/authMiddleware";
 const router = Router();
 
 // Routes
+router.get("/", protect, getInvoices);
 router.post("/", protect, createInvoice);
 router.get("/stats", protect, getInvoiceStats);
 router.get("/:id", protect, getInvoiceById);
