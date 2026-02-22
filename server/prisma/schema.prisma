@@ -184,7 +184,10 @@ model Invoice {
   terms            String?
   pdf_url          String?
   paid_at          DateTime?
+  pdf_status       String   @default("not_generated") @db.VarChar(20) // not_generated | processing | generated | failed
+  pdf_generated_at DateTime?
   last_reminder_at DateTime?
+  sent_at          DateTime?
   created_at       DateTime  @default(now())
   updated_at       DateTime  @default(now()) @updatedAt
   deleted_at       DateTime?
