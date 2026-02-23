@@ -10,6 +10,7 @@ import morganMiddleware from "./middlewares/morganMiddleware";
 import { rateLimiters } from "./middlewares/redisRateLimit";
 import authRoute from "./routes/authRoute";
 import clientRoute from "./routes/clientRoute";
+import dashboardRoute from "./routes/dashboardRoute";
 import invoiceRoute from "./routes/invoiceRoute";
 import projectRoute from "./routes/projectRoute";
 import timerRoute from "./routes/timerRoute";
@@ -43,6 +44,7 @@ app.use("/api/clients", clientRoute);
 app.use("/api/projects", projectRoute);
 app.use("/api/timers", timerRoute);
 app.use("/api/invoices", invoiceRoute);
+app.use("/api/dashboard", dashboardRoute);
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();

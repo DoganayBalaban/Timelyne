@@ -108,6 +108,7 @@ export class TimerService {
       return updated;
     });
     await redis.del(redisKey);
+    await redis.del(`dashboard:stats:${userId}`);
     return updatedEntry;
   }
 
@@ -180,7 +181,7 @@ export class TimerService {
       (end.getTime() - start.getTime()) / 60000,
     );
 
-    return await prisma.$transaction(async (tx) => {
+    const newEntry = await prisma.$transaction(async (tx) => {
       const overlapping = await tx.timeEntry.findFirst({
         where: {
           user_id: userId,
@@ -232,6 +233,8 @@ export class TimerService {
       });
       return newEntry;
     });
+    await redis.del(`dashboard:stats:${userId}`);
+    return newEntry;
   }
 
   static async getTimeReport(userId: string, query: GetTimeReportQueryInput) {
@@ -442,6 +445,8 @@ export class TimerService {
       },
     });
 
+    await redis.del(`dashboard:stats:${userId}`);
+
     return updated;
   }
 
@@ -477,6 +482,7 @@ export class TimerService {
         deleted_at: new Date(),
       },
     });
+    await redis.del(`dashboard:stats:${userId}`);
     return true;
   }
 }
