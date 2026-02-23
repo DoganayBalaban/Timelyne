@@ -11,9 +11,6 @@ const router = express.Router();
 
 import { redisRateLimit } from "../middlewares/redisRateLimit";
 
-// Not: İleri aşamada Redis önbellekleme middleware'i buraya eklenebilir.
-// Örnek kullanım: router.get("/stats", protect, cacheMiddleware, getDashboardStats);
-
 router.get(
   "/stats",
   protect,
@@ -26,7 +23,12 @@ router.get(
   redisRateLimit({ windowMs: 60 * 1000, maxRequests: 30 }),
   getRevenueChartData,
 );
-router.get("/recent-activity", protect, getRecentActivity);
+router.get(
+  "/recent-activity",
+  protect,
+  redisRateLimit({ windowMs: 60 * 1000, maxRequests: 30 }),
+  getRecentActivity,
+);
 router.get("/overdue-invoices", protect, getOverdueInvoices);
 
 export default router;

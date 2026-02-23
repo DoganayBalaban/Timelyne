@@ -203,8 +203,40 @@ export class DashboardService {
     userId: string,
     query: GetRecentActivityInput,
   ): Promise<any[]> {
-    // TODO: implement
-    return [];
+    const cacheKey = `dashboard:recent-activity:${userId}`;
+
+    // 1️⃣ Cache check (5 min) - AP Approach
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // 2️⃣ Get the last 20 audit logs
+    const limit = query.limit || 20;
+
+    const logs = await prisma.auditLog.findMany({
+      where: {
+        user_id: userId,
+      },
+      orderBy: {
+        created_at: "desc",
+      },
+      take: limit,
+    });
+
+    // 3️⃣ Normalize for the frontend
+    const formatted = logs.map((log) => ({
+      id: log.id,
+      type: `${log.entity_type}_${log.action}`,
+      entityId: log.entity_id,
+      metadata: log.new_values,
+      createdAt: log.created_at,
+    }));
+
+    // 4️⃣ Cache set (300 seconds = 5 minutes)
+    await redis.set(cacheKey, JSON.stringify(formatted), "EX", 300);
+
+    return formatted;
   }
 
   /**
