@@ -29,6 +29,11 @@ router.get(
   redisRateLimit({ windowMs: 60 * 1000, maxRequests: 30 }),
   getRecentActivity,
 );
-router.get("/overdue-invoices", protect, getOverdueInvoices);
+router.get(
+  "/overdue-invoices",
+  protect,
+  redisRateLimit({ windowMs: 60 * 1000, maxRequests: 30 }),
+  getOverdueInvoices,
+);
 
 export default router;

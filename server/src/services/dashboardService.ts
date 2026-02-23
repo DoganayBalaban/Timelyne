@@ -245,8 +245,108 @@ export class DashboardService {
   static async getOverdueInvoices(
     userId: string,
     query: GetOverdueInvoicesInput,
-  ): Promise<any[]> {
-    // TODO: implement
-    return [];
+  ): Promise<any> {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const cacheKey = `dashboard:overdue:${userId}:p${page}:l${limit}`;
+
+    // 1️⃣ Cache check (5 min) - AP Approach
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    const now = new Date();
+    const skip = (page - 1) * limit;
+
+    // 2️⃣ Fetch invoices and total count
+    const [invoices, totalCount] = await prisma.$transaction([
+      prisma.invoice.findMany({
+        where: {
+          user_id: userId,
+          deleted_at: null,
+          status: {
+            not: "paid",
+          },
+          due_date: {
+            lt: now,
+          },
+        },
+        include: {
+          client: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          due_date: "asc",
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.invoice.count({
+        where: {
+          user_id: userId,
+          deleted_at: null,
+          status: {
+            not: "paid",
+          },
+          due_date: {
+            lt: now,
+          },
+        },
+      }),
+    ]);
+
+    // 3️⃣ Total risk amount calculation
+    const totalAmountRaw = await prisma.invoice.aggregate({
+      where: {
+        user_id: userId,
+        deleted_at: null,
+        status: {
+          not: "paid",
+        },
+        due_date: {
+          lt: now,
+        },
+      },
+      _sum: {
+        total: true,
+      },
+    });
+
+    const totalAmount = Number(totalAmountRaw._sum.total || 0);
+
+    // 4️⃣ Formatting and Risk Logic
+    const formatted = invoices.map((inv) => {
+      const daysOverdue = dayjs().diff(dayjs(inv.due_date), "day");
+      let riskLevel = "medium";
+      if (daysOverdue > 30) riskLevel = "critical";
+      else if (daysOverdue > 14) riskLevel = "high";
+
+      return {
+        id: inv.id,
+        invoiceNumber: inv.invoice_number,
+        clientName: inv.client?.name || "Unknown",
+        dueDate: inv.due_date,
+        daysOverdue,
+        riskLevel,
+        amount: Number(inv.total),
+      };
+    });
+
+    const response = {
+      totalOverdue: totalCount,
+      totalAmount,
+      page,
+      limit,
+      data: formatted,
+    };
+
+    // 5️⃣ Cache set (300 seconds = 5 minutes)
+    await redis.set(cacheKey, JSON.stringify(response), "EX", 300);
+
+    return response;
   }
 }
