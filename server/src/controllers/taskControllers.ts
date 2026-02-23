@@ -3,7 +3,7 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import { TaskService } from "../services/taskService";
 import { AppError } from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
-import { createTaskSchema } from "../validators/taskSchema";
+import { createTaskSchema, updateTaskSchema } from "../validators/taskSchema";
 
 export const createTask = catchAsync(
   async (req: AuthRequest, res: Response) => {
@@ -17,8 +17,16 @@ export const createTask = catchAsync(
 
 export const updateTask = catchAsync(
   async (req: AuthRequest, res: Response) => {
-    // TODO: Implement update task controller logic
-    throw new AppError("Not implemented yet", 501);
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("unauthorized", 401);
+    const taskId = req.params.id;
+    const validated = updateTaskSchema.parse(req.body);
+    const task = await TaskService.updateTask(
+      userId,
+      taskId as string,
+      validated,
+    );
+    res.status(200).json(task);
   },
 );
 
