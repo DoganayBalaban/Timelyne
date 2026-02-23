@@ -32,7 +32,10 @@ export const updateTask = catchAsync(
 
 export const deleteTask = catchAsync(
   async (req: AuthRequest, res: Response) => {
-    // TODO: Implement delete task controller logic
-    throw new AppError("Not implemented yet", 501);
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("unauthorized", 401);
+    const taskId = req.params.id;
+    const task = await TaskService.deleteTask(userId, taskId as string);
+    res.status(200).json({ success: "true" });
   },
 );

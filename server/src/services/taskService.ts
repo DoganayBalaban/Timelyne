@@ -194,7 +194,72 @@ export class TaskService {
   }
 
   static async deleteTask(userId: string, taskId: string) {
-    // TODO: Implement delete task logic
-    throw new AppError("Not implemented yet", 501);
+    return await prisma
+      .$transaction(async (tx) => {
+        const task = await tx.task.findFirst({
+          where: {
+            id: taskId,
+            project: { user_id: userId },
+            deleted_at: null,
+          },
+        });
+        if (!task) {
+          throw new AppError("Task not found or access denied", 404);
+        }
+        const currentPosition = task.position ?? 0;
+        const currentStatus = task.status;
+        const linkedTimeEntries = await tx.timeEntry.count({
+          where: {
+            task_id: taskId,
+            deleted_at: null,
+          },
+        });
+
+        if (linkedTimeEntries > 0) {
+          throw new AppError(
+            "Task cannot be deleted because it has time entries",
+            400,
+          );
+        }
+        await tx.task.update({
+          where: { id: taskId },
+          data: {
+            deleted_at: new Date(),
+          },
+        });
+
+        // 4️⃣ Column reindex
+        await tx.task.updateMany({
+          where: {
+            project_id: task.project_id,
+            status: currentStatus,
+            position: {
+              gt: currentPosition,
+            },
+            deleted_at: null,
+          },
+          data: {
+            position: { decrement: 1 },
+          },
+        });
+
+        // 5️⃣ Audit log
+        await tx.auditLog.create({
+          data: {
+            user_id: userId,
+            action: "delete",
+            entity_type: "task",
+            entity_id: taskId,
+            old_values: task,
+          },
+        });
+
+        return { success: true };
+      })
+      .then(async (result) => {
+        await redis.del(`dashboard:recent-activity:${userId}`);
+
+        return result;
+      });
   }
 }
