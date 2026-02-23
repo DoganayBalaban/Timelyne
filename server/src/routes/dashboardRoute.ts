@@ -20,7 +20,12 @@ router.get(
   redisRateLimit({ windowMs: 60 * 1000, maxRequests: 30 }),
   getDashboardStats,
 );
-router.get("/revenue", protect, getRevenueChartData);
+router.get(
+  "/revenue",
+  protect,
+  redisRateLimit({ windowMs: 60 * 1000, maxRequests: 30 }),
+  getRevenueChartData,
+);
 router.get("/recent-activity", protect, getRecentActivity);
 router.get("/overdue-invoices", protect, getOverdueInvoices);
 

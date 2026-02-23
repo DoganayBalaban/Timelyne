@@ -111,6 +111,7 @@ export class InvoiceService {
           });
         }
         await redis.del(`dashboard:stats:${userId}`);
+        await redis.del(`dashboard:revenue:${userId}`);
         return invoice;
       },
       {
@@ -329,6 +330,7 @@ export class InvoiceService {
           },
         });
         await redis.del(`dashboard:stats:${userId}`);
+        await redis.del(`dashboard:revenue:${userId}`);
         return updated;
       },
       {
@@ -370,6 +372,7 @@ export class InvoiceService {
           },
         });
         await redis.del(`dashboard:stats:${userId}`);
+        await redis.del(`dashboard:revenue:${userId}`);
         return true;
       },
       {
@@ -591,6 +594,7 @@ export class InvoiceService {
         });
 
         await redis.del(`dashboard:stats:${userId}`);
+        await redis.del(`dashboard:revenue:${userId}`);
 
         return {
           invoiceId,

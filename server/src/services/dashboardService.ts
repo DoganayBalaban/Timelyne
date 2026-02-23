@@ -142,8 +142,58 @@ export class DashboardService {
     userId: string,
     query: GetRevenueChartDataInput,
   ): Promise<any> {
-    // TODO: implement
-    return [];
+    const cacheKey = `dashboard:revenue:${userId}`;
+
+    // 1️⃣ Cache check (AP approach)
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    const startDate = dayjs().subtract(11, "month").startOf("month").toDate();
+
+    // 2️⃣ Son 12 ayın paid invoice toplamı (Daha performanslı tek SQL query)
+    const revenueRaw = await prisma.$queryRaw<
+      { month: Date; revenue: number }[]
+    >`
+      SELECT 
+        DATE_TRUNC('month', issue_date) as month,
+        SUM(total) as revenue
+      FROM invoices
+      WHERE user_id = ${userId}::uuid
+      AND status = 'paid'
+      AND deleted_at IS NULL
+      AND issue_date >= ${startDate}::date
+      GROUP BY DATE_TRUNC('month', issue_date)
+      ORDER BY month ASC
+    `;
+
+    const monthlyMap = new Map<string, number>();
+
+    for (const row of revenueRaw) {
+      const monthKey = dayjs(row.month).format("YYYY-MM");
+      monthlyMap.set(monthKey, Number(row.revenue || 0));
+    }
+
+    // 3️⃣ Eksik ayları 0 ile doldur
+    const result = [];
+
+    for (let i = 0; i < 12; i++) {
+      const currentMonth = dayjs()
+        .subtract(11 - i, "month")
+        .startOf("month");
+      const key = currentMonth.format("YYYY-MM");
+
+      result.push({
+        month: key,
+        revenue: monthlyMap.get(key) || 0,
+      });
+    }
+
+    // 4️⃣ Cache set (1 saat)
+    await redis.set(cacheKey, JSON.stringify(result), "EX", 3600);
+
+    return result;
   }
 
   /**
