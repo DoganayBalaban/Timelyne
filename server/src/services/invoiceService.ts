@@ -1,3 +1,4 @@
+import { redis } from "../config/redis";
 import { emailQueue } from "../queues/emailQueue";
 import { pdfQueue } from "../queues/pdfQueue";
 import { AppError } from "../utils/appError";
@@ -109,6 +110,7 @@ export class InvoiceService {
             data: { invoiced: true, invoice_id: invoice.id },
           });
         }
+        await redis.del(`dashboard:stats:${userId}`);
         return invoice;
       },
       {
@@ -326,6 +328,7 @@ export class InvoiceService {
             invoice_items: true,
           },
         });
+        await redis.del(`dashboard:stats:${userId}`);
         return updated;
       },
       {
@@ -366,6 +369,7 @@ export class InvoiceService {
             deleted_at: new Date(),
           },
         });
+        await redis.del(`dashboard:stats:${userId}`);
         return true;
       },
       {
@@ -585,6 +589,8 @@ export class InvoiceService {
             },
           },
         });
+
+        await redis.del(`dashboard:stats:${userId}`);
 
         return {
           invoiceId,
