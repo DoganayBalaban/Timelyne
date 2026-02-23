@@ -1,4 +1,5 @@
 import { Job, Worker } from "bullmq";
+import { getIO } from "../config/socket";
 import { bullMqConnection } from "../queues/pdfQueue";
 import logger from "../utils/logger";
 import { buildInvoicePdf } from "../utils/pdfBuilder";
@@ -89,8 +90,24 @@ const pdfWorker = new Worker<PdfJobData>("pdfQueue", processPdfJob, {
   concurrency: 5, // process up to 5 PDFs in parallel
 });
 
-pdfWorker.on("completed", (job) => {
+pdfWorker.on("completed", async (job) => {
   logger.info(`[pdfWorker] Job ${job.id} completed`);
+
+  // Notify the frontend via WebSocket
+  try {
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: job.data.invoiceId },
+      select: { user_id: true },
+    });
+    if (invoice) {
+      getIO().to(`user:${invoice.user_id}`).emit("invoice:pdf-ready", {
+        invoiceId: job.data.invoiceId,
+        status: "generated",
+      });
+    }
+  } catch (err) {
+    logger.error("[pdfWorker] Failed to emit pdf-ready event", err);
+  }
 });
 
 pdfWorker.on("failed", async (job, err) => {
@@ -107,6 +124,22 @@ pdfWorker.on("failed", async (job, err) => {
       logger.warn(
         `[pdfWorker] Marked invoice ${job.data.invoiceId} pdf_status=failed after ${job.attemptsMade} attempts`,
       );
+
+      // Notify the frontend about the failure
+      try {
+        const inv = await prisma.invoice.findUnique({
+          where: { id: job.data.invoiceId },
+          select: { user_id: true },
+        });
+        if (inv) {
+          getIO().to(`user:${inv.user_id}`).emit("invoice:pdf-failed", {
+            invoiceId: job.data.invoiceId,
+            status: "failed",
+          });
+        }
+      } catch (emitErr) {
+        logger.error("[pdfWorker] Failed to emit pdf-failed event", emitErr);
+      }
     } catch (updateErr) {
       logger.error(
         "[pdfWorker] Could not update pdf_status to failed:",

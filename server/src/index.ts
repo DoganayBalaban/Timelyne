@@ -2,9 +2,11 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { createServer } from "http";
 import { connectDatabase } from "./config/db";
 import { env } from "./config/env";
 import { connectRedis } from "./config/redis";
+import { initSocket } from "./config/socket";
 import { globalErrorHandler } from "./middlewares/errorMiddleware";
 import morganMiddleware from "./middlewares/morganMiddleware";
 import { rateLimiters } from "./middlewares/redisRateLimit";
@@ -20,6 +22,10 @@ import "./workers/emailWorker";
 import "./workers/pdfWorker";
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize Socket.IO
+initSocket(httpServer);
 
 app.use(
   cors({
@@ -53,7 +59,7 @@ async function startServer() {
   await connectDatabase();
   await connectRedis();
 
-  app.listen(env.PORT, () => {
+  httpServer.listen(env.PORT, () => {
     logger.info(`🚀 Server is running on port ${env.PORT}`);
   });
 }
