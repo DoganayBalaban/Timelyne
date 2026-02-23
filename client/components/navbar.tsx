@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useLogout, useUser } from "@/lib/hooks/useAuth";
 import {
+  FileText,
   FolderOpen,
   LayoutDashboard,
   Loader2,
@@ -30,6 +31,11 @@ const navItems = [
     label: "Projeler",
     href: "/projects",
     icon: FolderOpen,
+  },
+  {
+    label: "Faturalar",
+    href: "/invoices",
+    icon: FileText,
   },
   {
     label: "Zaman",
