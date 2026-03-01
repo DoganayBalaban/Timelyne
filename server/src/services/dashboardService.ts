@@ -160,7 +160,7 @@ export class DashboardService {
         DATE_TRUNC('month', issue_date) as month,
         SUM(total) as revenue
       FROM invoices
-      WHERE user_id = ${userId}::uuid
+      WHERE user_id = ${userId}
       AND status = 'paid'
       AND deleted_at IS NULL
       AND issue_date >= ${startDate}::date

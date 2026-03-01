@@ -1,38 +1,51 @@
 "use client";
 
+import { OverdueAlerts } from "@/components/dashboard/overdue-alerts";
+import { RecentActivity } from "@/components/dashboard/recent-activity";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { StatsCards } from "@/components/dashboard/stats-cards";
+import { TopClients } from "@/components/dashboard/top-clients";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useResendVerification, useUser } from "@/lib/hooks/useAuth";
-import { AlertTriangle, Loader2, Mail, User } from "lucide-react";
+import {
+  useDashboardStats,
+  useOverdueInvoices,
+  useRecentActivity,
+  useRevenueChart,
+} from "@/lib/hooks/useDashboard";
+import { useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, Loader2, Mail, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { data: user, isLoading, error } = useUser();
+  const queryClient = useQueryClient();
+  const { data: user, isLoading: userLoading, error } = useUser();
   const resendVerification = useResendVerification();
+
+  // Dashboard data hooks (AP: 5 min staleTime)
+  const stats = useDashboardStats();
+  const revenue = useRevenueChart();
+  const activity = useRecentActivity(10);
+  const overdue = useOverdueInvoices();
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!isLoading && error) {
+    if (!userLoading && error) {
       router.push("/login");
     }
-  }, [isLoading, error, router]);
+  }, [userLoading, error, router]);
 
   // Redirect to onboarding if not completed
   useEffect(() => {
-    if (!isLoading && user && !user.is_onboarding_completed) {
+    if (!userLoading && user && !user.is_onboarding_completed) {
       router.push("/onboarding");
     }
-  }, [isLoading, user, router]);
+  }, [userLoading, user, router]);
 
-  if (isLoading) {
+  if (userLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -50,8 +63,20 @@ export default function DashboardPage() {
     }
   };
 
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+  };
+
+  // Last data update timestamp
+  const lastUpdated = stats.dataUpdatedAt
+    ? new Date(stats.dataUpdatedAt).toLocaleTimeString("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       {/* Email verification warning */}
       {!user.email_verified && (
         <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
@@ -63,7 +88,8 @@ export default function DashboardPage() {
                   E-posta Doğrulanmadı
                 </h3>
                 <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                  Tüm özelliklere erişmek için lütfen e-posta adresinizi doğrulayın.
+                  Tüm özelliklere erişmek için lütfen e-posta adresinizi
+                  doğrulayın.
                 </p>
                 <Button
                   variant="outline"
@@ -90,69 +116,52 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* User info card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Profil Bilgileri
-          </CardTitle>
-          <CardDescription>
-            Hesap bilgileriniz
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-sm text-muted-foreground">İsim</p>
-              <p className="font-medium">
-                {user.first_name} {user.last_name}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">E-posta</p>
-              <p className="font-medium flex items-center gap-2">
-                {user.email}
-                {user.email_verified ? (
-                  <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-0.5 rounded-full">
-                    Doğrulandı
-                  </span>
-                ) : (
-                  <span className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 px-2 py-0.5 rounded-full">
-                    Doğrulanmadı
-                  </span>
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Rol</p>
-              <p className="font-medium capitalize">{user.role}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Plan</p>
-              <p className="font-medium capitalize">{user.plan}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Zaman Dilimi</p>
-              <p className="font-medium">{user.timezone}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Para Birimi</p>
-              <p className="font-medium">{user.currency}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Hoş Geldin, {user.first_name}! 👋
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            İşte bu ayki genel durumun
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              Son güncelleme: {lastUpdated}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            className="gap-1.5"
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${stats.isFetching ? "animate-spin" : ""}`}
+            />
+            Yenile
+          </Button>
+        </div>
+      </div>
 
-      {/* Welcome message */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Hoş Geldiniz, {user.first_name}! 🎉</CardTitle>
-          <CardDescription>
-            Timelyne'a başarıyla giriş yaptınız. Freelance işlerinizi yönetmeye başlayabilirsiniz.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      {/* Stats Cards */}
+      <StatsCards data={stats.data} isLoading={stats.isLoading} />
+
+      {/* Revenue Chart (full width) */}
+      <RevenueChart data={revenue.data} isLoading={revenue.isLoading} />
+
+      {/* Bottom Grid: Left (Overdue + Activity) | Right (Top Clients) */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3 space-y-6">
+          <OverdueAlerts data={overdue.data} isLoading={overdue.isLoading} />
+          <RecentActivity data={activity.data} isLoading={activity.isLoading} />
+        </div>
+        <div className="lg:col-span-2">
+          <TopClients />
+        </div>
+      </div>
     </div>
   );
 }
