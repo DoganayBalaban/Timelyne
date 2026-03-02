@@ -2,65 +2,39 @@ import Redis from "ioredis";
 import logger from "../utils/logger";
 import { env } from "./env";
 
-// Main Redis client for general operations
-const redis = new Redis({
+// TLS-enabled Redis options for Upstash
+const redisOptions = {
   host: env.REDIS_HOST,
   port: Number(env.REDIS_PORT),
   password: env.REDIS_PASSWORD,
+  tls: {}, // ⚡ TLS for Upstash
   maxRetriesPerRequest: 3,
-  retryStrategy(times) {
+  retryStrategy(times: number) {
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
   lazyConnect: true,
-});
+};
+
+// Main Redis client for general operations
+const redis = new Redis(redisOptions);
 
 // Subscriber client for Pub/Sub (needs separate connection)
-const subscriber = new Redis({
-  host: env.REDIS_HOST,
-  port: Number(env.REDIS_PORT),
-  password: env.REDIS_PASSWORD,
-  maxRetriesPerRequest: 3,
-  lazyConnect: true,
-});
+const subscriber = new Redis(redisOptions);
 
 // Publisher client for Pub/Sub
-const publisher = new Redis({
-  host: env.REDIS_HOST,
-  port: Number(env.REDIS_PORT),
-  password: env.REDIS_PASSWORD,
-  maxRetriesPerRequest: 3,
-  lazyConnect: true,
-});
+const publisher = new Redis(redisOptions);
 
 // Connection event handlers
-redis.on("connect", () => {
-  logger.info("Redis main client connected");
-});
+redis.on("connect", () => logger.info("Redis main client connected"));
+redis.on("error", (err) => logger.error("Redis main client error:", err));
+redis.on("close", () => logger.warn("Redis main client connection closed"));
 
-redis.on("error", (err) => {
-  logger.error("Redis main client error:", err);
-});
+subscriber.on("connect", () => logger.info("Redis subscriber connected"));
+subscriber.on("error", (err) => logger.error("Redis subscriber error:", err));
 
-redis.on("close", () => {
-  logger.warn("Redis main client connection closed");
-});
-
-subscriber.on("connect", () => {
-  logger.info("Redis subscriber connected");
-});
-
-subscriber.on("error", (err) => {
-  logger.error("Redis subscriber error:", err);
-});
-
-publisher.on("connect", () => {
-  logger.info("Redis publisher connected");
-});
-
-publisher.on("error", (err) => {
-  logger.error("Redis publisher error:", err);
-});
+publisher.on("connect", () => logger.info("Redis publisher connected"));
+publisher.on("error", (err) => logger.error("Redis publisher error:", err));
 
 // Connect to Redis
 export const connectRedis = async (): Promise<void> => {
