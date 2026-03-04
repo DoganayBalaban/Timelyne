@@ -1,4 +1,31 @@
 -- CreateTable
+CREATE TABLE "users" (
+    "id" TEXT NOT NULL,
+    "email" VARCHAR(255) NOT NULL,
+    "password_hash" VARCHAR(255) NOT NULL,
+    "password_reset_token" TEXT,
+    "password_reset_expires" TIMESTAMP(3),
+    "first_name" VARCHAR(100),
+    "last_name" VARCHAR(100),
+    "role" VARCHAR(20) NOT NULL DEFAULT 'freelancer',
+    "avatar_url" TEXT,
+    "timezone" VARCHAR(50) NOT NULL DEFAULT 'UTC',
+    "currency" VARCHAR(3) NOT NULL DEFAULT 'USD',
+    "hourly_rate" DECIMAL(10,2),
+    "plan" VARCHAR(20) NOT NULL DEFAULT 'free',
+    "plan_expires_at" TIMESTAMP(3),
+    "email_verified" BOOLEAN NOT NULL DEFAULT false,
+    "is_onboarding_completed" BOOLEAN NOT NULL DEFAULT false,
+    "verification_token" TEXT,
+    "verification_token_expires" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deleted_at" TIMESTAMP(3),
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "clients" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
@@ -99,7 +126,10 @@ CREATE TABLE "invoices" (
     "terms" TEXT,
     "pdf_url" TEXT,
     "paid_at" TIMESTAMP(3),
+    "pdf_status" VARCHAR(20) NOT NULL DEFAULT 'not_generated',
+    "pdf_generated_at" TIMESTAMP(3),
     "last_reminder_at" TIMESTAMP(3),
+    "sent_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" TIMESTAMP(3),
@@ -197,6 +227,18 @@ CREATE TABLE "audit_logs" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_password_reset_token_key" ON "users"("password_reset_token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_verification_token_key" ON "users"("verification_token");
+
+-- CreateIndex
+CREATE INDEX "users_email_idx" ON "users"("email");
+
+-- CreateIndex
 CREATE INDEX "clients_user_id_idx" ON "clients"("user_id");
 
 -- CreateIndex
@@ -274,9 +316,6 @@ CREATE INDEX "audit_logs_user_id_created_at_idx" ON "audit_logs"("user_id", "cre
 -- CreateIndex
 CREATE INDEX "audit_logs_entity_type_entity_id_idx" ON "audit_logs"("entity_type", "entity_id");
 
--- CreateIndex
-CREATE INDEX "users_email_idx" ON "users"("email");
-
 -- AddForeignKey
 ALTER TABLE "clients" ADD CONSTRAINT "clients_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -333,101 +372,3 @@ ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_id_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- Enable UUID Extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Partial Indexes (WHERE clauses)
--- Clients
-CREATE INDEX idx_clients_user_active ON clients(user_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_clients_search ON clients USING gin(to_tsvector('english', name || ' ' || COALESCE(company, '')));
-
--- Projects
-CREATE INDEX idx_projects_user_active ON projects(user_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_projects_status_active ON projects(user_id, status) WHERE deleted_at IS NULL;
-CREATE INDEX idx_projects_deadline_active ON projects(deadline) WHERE status = 'active';
-
--- Tasks
-CREATE INDEX idx_tasks_project_active ON tasks(project_id) WHERE deleted_at IS NULL;
-
--- Time Entries
-CREATE INDEX idx_time_entries_user_date_active ON time_entries(user_id, date) WHERE deleted_at IS NULL;
-CREATE INDEX idx_time_entries_unbilled ON time_entries(project_id, billable, invoiced) WHERE invoiced = false;
-
--- Invoices
-CREATE INDEX idx_invoices_user_active ON invoices(user_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_invoices_overdue ON invoices(due_date, status) WHERE status = 'sent';
-
--- Expenses
-CREATE INDEX idx_expenses_user_date_active ON expenses(user_id, date) WHERE deleted_at IS NULL;
-
--- Refresh Tokens
-CREATE INDEX idx_refresh_tokens_token_active ON refresh_tokens(token) WHERE revoked_at IS NULL;
-
--- Constraints
--- Projects
-ALTER TABLE projects ADD CONSTRAINT check_budget_positive 
- CHECK (budget IS NULL OR budget > 0);
-
--- Time Entries
-ALTER TABLE time_entries ADD CONSTRAINT check_duration_positive
- CHECK (duration_minutes IS NULL OR duration_minutes > 0);
-
--- Invoices
-ALTER TABLE invoices ADD CONSTRAINT check_total_positive
- CHECK (total > 0);
-ALTER TABLE invoices ADD CONSTRAINT check_due_after_issue
- CHECK (due_date >= issue_date);
-
--- Triggers for updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
- NEW.updated_at = CURRENT_TIMESTAMP;
- RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
- FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients
- FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
- FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_time_entries_updated_at BEFORE UPDATE ON time_entries
- FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices
- FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Prevent Invoiced Time Entry Deletion
-CREATE OR REPLACE FUNCTION prevent_invoiced_time_entry_deletion()
-RETURNS TRIGGER AS $$
-BEGIN
- IF OLD.invoiced = TRUE THEN
- RAISE EXCEPTION 'Cannot delete invoiced time entry';
- END IF;
- RETURN OLD;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER prevent_invoiced_deletion BEFORE DELETE ON time_entries
- FOR EACH ROW EXECUTE FUNCTION prevent_invoiced_time_entry_deletion();
-
--- Materialized View for monthly stats
-CREATE MATERIALIZED VIEW monthly_stats AS
-SELECT
- user_id,
- DATE_TRUNC('month', date) as month,
- SUM(duration_minutes) / 60.0 as total_hours,
- SUM(CASE WHEN billable THEN duration_minutes ELSE 0 END) / 60.0 as billable_hours,
- COUNT(DISTINCT project_id) as active_projects,
- COUNT(*) as total_entries
-FROM time_entries
-WHERE deleted_at IS NULL
-GROUP BY user_id, DATE_TRUNC('month', date);
-
-CREATE UNIQUE INDEX idx_monthly_stats ON monthly_stats(user_id, month);

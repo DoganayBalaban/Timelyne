@@ -1,49 +1,75 @@
 "use client";
 
+import {
+  KanbanBoard,
+  KanbanCard,
+  KanbanCards,
+  KanbanHeader,
+  KanbanProvider,
+  type DragEndEvent,
+  type KanbanColumn,
+  type KanbanItem,
+} from "@/components/kibo-ui/kanban";
 import { ProjectFormDialog } from "@/components/project-form-dialog";
+import { TaskFormDialog } from "@/components/task-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Task } from "@/lib/api/projects";
 import {
-    useProject,
-    useProjectStats,
-    useProjectTasks,
-    useProjectTimeEntries,
+  useProject,
+  useProjectStats,
+  useProjectTasks,
+  useProjectTimeEntries,
 } from "@/lib/hooks/useProjects";
+import { useDeleteTask, useUpdateTask } from "@/lib/hooks/useTasks";
 import {
-    ArrowLeft,
-    Banknote,
-    Calendar,
-    CheckCircle2,
-    Clock,
-    DollarSign,
-    FolderOpen,
-    ListTodo,
-    Pencil,
-    Receipt,
-    Timer,
-    TrendingUp,
-    User,
+  ArrowLeft,
+  Banknote,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  FolderOpen,
+  ListTodo,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Receipt,
+  Timer,
+  Trash2,
+  TrendingUp,
+  User,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+// Kanban task item type (Task + column field for drag-and-drop)
+type KanbanTaskItem = Task & KanbanItem;
 
 // Status helpers
 function getStatusLabel(status: string) {
@@ -57,7 +83,10 @@ function getStatusLabel(status: string) {
 }
 
 function getStatusVariant(status: string) {
-  const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  const map: Record<
+    string,
+    "default" | "secondary" | "destructive" | "outline"
+  > = {
     active: "default",
     completed: "secondary",
     on_hold: "outline",
@@ -76,7 +105,10 @@ function getTaskStatusLabel(status: string) {
 }
 
 function getTaskStatusVariant(status: string) {
-  const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  const map: Record<
+    string,
+    "default" | "secondary" | "destructive" | "outline"
+  > = {
     todo: "outline",
     in_progress: "default",
     done: "secondary",
@@ -94,7 +126,10 @@ function getPriorityLabel(priority: string) {
 }
 
 function getPriorityVariant(priority: string) {
-  const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  const map: Record<
+    string,
+    "default" | "secondary" | "destructive" | "outline"
+  > = {
     low: "outline",
     medium: "secondary",
     high: "destructive",
@@ -274,7 +309,10 @@ export default function ProjectDetailPage() {
               <ListTodo className="h-4 w-4" />
               Görevler
             </TabsTrigger>
-            <TabsTrigger value="time-entries" className="flex items-center gap-2">
+            <TabsTrigger
+              value="time-entries"
+              className="flex items-center gap-2"
+            >
               <Timer className="h-4 w-4" />
               Zaman Kayıtları
             </TabsTrigger>
@@ -326,99 +364,215 @@ function InfoItem({
   );
 }
 
-// Tasks Tab
+// Tasks Tab — Kanban Board
 function TasksTab({ projectId }: { projectId: string }) {
   const { data: tasks, isLoading } = useProjectTasks(projectId);
+  const updateTask = useUpdateTask(projectId);
+  const deleteTask = useDeleteTask(projectId);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  const columns: KanbanColumn[] = [
+    { id: "todo", name: "Yapılacak", color: "#6B7280" },
+    { id: "in_progress", name: "Devam Ediyor", color: "#F59E0B" },
+    { id: "done", name: "Tamamlandı", color: "#10B981" },
+  ];
+
+  // Map tasks to kanban items
+  const kanbanItems: KanbanTaskItem[] = (tasks || []).map((t) => ({
+    ...t,
+    column: t.status,
+  }));
+
+  const [items, setItems] = useState<KanbanTaskItem[]>(kanbanItems);
+
+  // Sync when tasks change
+  useEffect(() => {
+    setItems((tasks || []).map((t) => ({ ...t, column: t.status })));
+  }, [tasks]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active } = event;
+    const draggedItem = items.find((i) => i.id === active.id);
+    if (!draggedItem) return;
+
+    // If the column changed, call the update API
+    if (draggedItem.column !== draggedItem.status) {
+      updateTask.mutate({
+        id: draggedItem.id,
+        data: { status: draggedItem.column as "todo" | "in_progress" | "done" },
+      });
+    }
+  };
+
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setTaskDialogOpen(true);
+  };
+
+  const handleDelete = (taskId: string) => {
+    if (confirm("Bu görevi silmek istediğinize emin misiniz?")) {
+      deleteTask.mutate(taskId);
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setTaskDialogOpen(open);
+    if (!open) setEditingTask(null);
+  };
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-14 w-full" />
-            ))}
+      <div className="flex gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex-1 min-w-[280px] space-y-3">
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
           </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!tasks || tasks.length === 0) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-12 space-y-2">
-            <ListTodo className="mx-auto h-10 w-10 text-muted-foreground/50" />
-            <p className="text-muted-foreground">
-              Bu projeye ait görev bulunmuyor.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        ))}
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Görevler</CardTitle>
-        <CardDescription>{tasks.length} görev bulundu</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Görev</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead>Öncelik</TableHead>
-                <TableHead className="hidden md:table-cell">Son Tarih</TableHead>
-                <TableHead className="hidden lg:table-cell">Tahmini Süre</TableHead>
-                <TableHead className="hidden lg:table-cell">Gerçek Süre</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasks.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{task.title}</p>
-                      {task.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                          {task.description}
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ListTodo className="h-5 w-5" />
+          <h3 className="font-semibold">Görevler</h3>
+          <span className="text-sm text-muted-foreground">
+            ({items.length} görev)
+          </span>
+        </div>
+        <Button size="sm" onClick={() => setTaskDialogOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          Görev Ekle
+        </Button>
+      </div>
+
+      {/* Kanban Board */}
+      <KanbanProvider
+        columns={columns}
+        data={items}
+        onDataChange={setItems}
+        onDragEnd={handleDragEnd}
+      >
+        {(column) => {
+          const columnItems = items.filter((i) => i.column === column.id);
+          return (
+            <KanbanBoard id={column.id} key={column.id}>
+              <KanbanHeader count={columnItems.length}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: column.color }}
+                  />
+                  <span>{column.name}</span>
+                </div>
+              </KanbanHeader>
+              <KanbanCards id={column.id} items={items}>
+                {(item: KanbanTaskItem) => (
+                  <KanbanCard
+                    column={column.id}
+                    id={item.id}
+                    key={item.id}
+                    name={item.title}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-sm leading-tight">
+                          {item.title}
+                        </p>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(item);
+                              }}
+                            >
+                              <Pencil className="mr-2 h-3.5 w-3.5" />
+                              Düzenle
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item.id);
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-3.5 w-3.5" />
+                              Sil
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {item.description}
                         </p>
                       )}
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant={getPriorityVariant(item.priority)}
+                          className="text-[10px] px-1.5 py-0"
+                        >
+                          {getPriorityLabel(item.priority)}
+                        </Badge>
+                        {item.due_date && (
+                          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(item.due_date)}
+                          </span>
+                        )}
+                        {item.estimated_hours && (
+                          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {item.estimated_hours}sa
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getTaskStatusVariant(task.status)}>
-                      {getTaskStatusLabel(task.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getPriorityVariant(task.priority)}>
-                      {getPriorityLabel(task.priority)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {formatDate(task.due_date)}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    {task.estimated_hours
-                      ? `${task.estimated_hours} saat`
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    {task.actual_hours ? `${task.actual_hours} saat` : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </KanbanCard>
+                )}
+              </KanbanCards>
+            </KanbanBoard>
+          );
+        }}
+      </KanbanProvider>
+
+      {/* Task Form Dialog */}
+      <TaskFormDialog
+        open={taskDialogOpen}
+        onOpenChange={handleDialogClose}
+        projectId={projectId}
+        task={editingTask}
+      />
+
+      {/* Delete loading */}
+      {deleteTask.isPending && (
+        <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50">
+          <div className="flex items-center gap-3 bg-card p-4 rounded-lg shadow-lg border">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Siliniyor...</span>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
 
@@ -470,8 +624,12 @@ function TimeEntriesTab({ projectId }: { projectId: string }) {
                 <TableHead>Açıklama</TableHead>
                 <TableHead className="hidden md:table-cell">Görev</TableHead>
                 <TableHead>Süre</TableHead>
-                <TableHead className="hidden md:table-cell">Faturalanabilir</TableHead>
-                <TableHead className="hidden lg:table-cell">Saatlik Ücret</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Faturalanabilir
+                </TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  Saatlik Ücret
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -573,7 +731,9 @@ function StatsTab({ projectId }: { projectId: string }) {
                 <p className="text-xs text-muted-foreground">Yapılacak</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">{stats.tasks.in_progress ?? 0}</p>
+                <p className="text-2xl font-bold">
+                  {stats.tasks.in_progress ?? 0}
+                </p>
                 <p className="text-xs text-muted-foreground">Devam Eden</p>
               </div>
               <div className="text-center">
