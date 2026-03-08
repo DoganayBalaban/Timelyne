@@ -5,9 +5,13 @@ import { env } from "../config/env";
  * Dedicated IORedis connection for BullMQ.
  * BullMQ requires maxRetriesPerRequest: null and enableReadyCheck: false.
  */
+const isProduction = process.env.NODE_ENV === "production";
+
 const bullMqConnection = {
   host: env.REDIS_HOST,
   port: Number(env.REDIS_PORT),
+  password: env.REDIS_PASSWORD,
+  ...(isProduction && { tls: {} }),
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 };
