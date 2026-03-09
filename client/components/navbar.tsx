@@ -1,6 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useLogout, useUser } from "@/lib/hooks/useAuth";
 import {
@@ -9,6 +17,7 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  Settings,
   Timer,
   Users,
 } from "lucide-react";
@@ -17,41 +26,46 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Müşteriler",
-    href: "/clients",
-    icon: Users,
-  },
-  {
-    label: "Projeler",
-    href: "/projects",
-    icon: FolderOpen,
-  },
-  {
-    label: "Faturalar",
-    href: "/invoices",
-    icon: FileText,
-  },
-  {
-    label: "Zaman",
-    href: "/time-entries",
-    icon: Timer,
-  },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Clients", href: "/clients", icon: Users },
+  { label: "Projects", href: "/projects", icon: FolderOpen },
+  { label: "Invoices", href: "/invoices", icon: FileText },
+  { label: "Time", href: "/time-entries", icon: Timer },
 ];
+
+function UserAvatar({ firstName, lastName, email, avatarUrl }: {
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string;
+  avatarUrl?: string | null;
+}) {
+  const initials = [firstName?.[0], lastName?.[0]]
+    .filter(Boolean)
+    .join("")
+    .toUpperCase() || email?.[0]?.toUpperCase() || "?";
+
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt="Avatar"
+        className="h-8 w-8 rounded-full object-cover ring-2 ring-background"
+      />
+    );
+  }
+
+  return (
+    <div className="h-8 w-8 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center text-violet-700 dark:text-violet-300 text-xs font-bold ring-2 ring-background">
+      {initials}
+    </div>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
   const { data: user } = useUser();
   const logout = useLogout();
-
-  const handleLogout = () => {
-    logout.mutate();
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -95,28 +109,62 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Right side */}
-        <div className="ml-auto flex items-center gap-3">
-          {user && (
-            <span className="text-sm text-muted-foreground hidden sm:inline-block">
-              {user.first_name} {user.last_name}
-            </span>
-          )}
+        {/* Right side — user avatar dropdown */}
+        <div className="ml-auto flex items-center gap-2">
           <Separator orientation="vertical" className="h-5 hidden sm:block" />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            disabled={logout.isPending}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            {logout.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <LogOut className="mr-2 h-4 w-4" />
-            )}
-            <span className="hidden sm:inline">Çıkış</span>
-          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2"
+                aria-label="User menu"
+              >
+                <UserAvatar
+                  firstName={user?.first_name}
+                  lastName={user?.last_name}
+                  email={user?.email}
+                  avatarUrl={user?.avatar_url}
+                />
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-medium leading-none">
+                    {user?.first_name} {user?.last_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-none mt-1">
+                    {user?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onClick={() => logout.mutate()}
+                disabled={logout.isPending}
+                className="text-destructive focus:text-destructive cursor-pointer"
+              >
+                {logout.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="mr-2 h-4 w-4" />
+                )}
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
