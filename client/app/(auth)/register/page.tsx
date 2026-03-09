@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRegister, useUser } from "@/lib/hooks/useAuth";
+import { useRegister } from "@/lib/hooks/useAuth";
 import { RegisterInput, registerSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 const perks = [
@@ -29,11 +28,6 @@ const perks = [
 
 export default function RegisterPage() {
   const registerMutation = useRegister();
-  const { data: user } = useUser();
-
-  if (user) {
-    redirect("/dashboard");
-  }
   const {
     register,
     handleSubmit,
