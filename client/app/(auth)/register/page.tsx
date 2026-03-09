@@ -7,17 +7,38 @@ import { useRegister } from "@/lib/hooks/useAuth";
 import { RegisterInput, registerSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AlertCircle,
   BarChart3,
   Check,
   Clock,
   FileText,
   Loader2,
+  UserRoundX,
+  WifiOff,
   X,
   Zap,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
+
+type RegisterError =
+  | { kind: "email_taken" }
+  | { kind: "network" }
+  | { kind: "server" }
+  | { kind: "generic"; message: string };
+
+function getRegisterError(error: unknown): RegisterError {
+  const status = (error as any)?.response?.status;
+  const msg: string = (error as any)?.response?.data?.message ?? "";
+
+  if (!status) return { kind: "network" };
+  if (status === 400 && msg.toLowerCase().includes("already exists")) {
+    return { kind: "email_taken" };
+  }
+  if (status >= 500) return { kind: "server" };
+  return { kind: "generic", message: msg || "Registration failed." };
+}
 
 const perks = [
   { icon: Clock, text: "Unlimited time tracking" },
@@ -161,12 +182,55 @@ export default function RegisterPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {registerMutation.error && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {(registerMutation.error as any).response?.data?.message ||
-                  "Registration failed. Please try again."}
-              </div>
-            )}
+            {registerMutation.error && (() => {
+              const err = getRegisterError(registerMutation.error);
+
+              if (err.kind === "email_taken") {
+                return (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400 flex gap-3">
+                    <UserRoundX className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-medium">An account with this email already exists.</p>
+                      <p className="text-xs opacity-80">
+                        <Link href="/login" className="underline underline-offset-2 hover:opacity-100">
+                          Sign in instead
+                        </Link>
+                        {" "}or use a different email address.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (err.kind === "network") {
+                return (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex gap-3">
+                    <WifiOff className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-medium">Unable to connect to the server.</p>
+                      <p className="text-xs text-destructive/80">Check your internet connection and try again.</p>
+                    </div>
+                  </div>
+                );
+              }
+
+              const message =
+                err.kind === "server"
+                  ? "Something went wrong on our end."
+                  : err.message;
+              const hint =
+                err.kind === "server" ? "Please try again in a moment." : "Please try again.";
+
+              return (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex gap-3">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-medium">{message}</p>
+                    <p className="text-xs text-destructive/80">{hint}</p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Name row */}
             <div className="grid grid-cols-2 gap-3">

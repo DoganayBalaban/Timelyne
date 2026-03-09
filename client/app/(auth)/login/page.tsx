@@ -7,15 +7,42 @@ import { useLogin } from "@/lib/hooks/useAuth";
 import { LoginInput, loginSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AlertCircle,
   CheckCircle2,
   Clock,
   DollarSign,
   FileText,
   Loader2,
+  WifiOff,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
+
+function getLoginError(error: unknown): { message: string; hint?: string } {
+  const status = (error as any)?.response?.status;
+  const msg: string = (error as any)?.response?.data?.message ?? "";
+
+  if (!status) {
+    return {
+      message: "Unable to connect to the server.",
+      hint: "Check your internet connection and try again.",
+    };
+  }
+  if (status === 401 || msg.toLowerCase().includes("invalid credentials")) {
+    return {
+      message: "Incorrect email or password.",
+      hint: "Double-check your details, or reset your password if you've forgotten it.",
+    };
+  }
+  if (status >= 500) {
+    return {
+      message: "Something went wrong on our end.",
+      hint: "Please try again in a moment.",
+    };
+  }
+  return { message: msg || "Sign in failed.", hint: "Please try again." };
+}
 const features = [
   { icon: Clock, text: "Track billable hours effortlessly" },
   { icon: FileText, text: "Generate PDF invoices in one click" },
@@ -137,12 +164,22 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {login.error && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {(login.error as any).response?.data?.message ||
-                  "Login failed. Please try again."}
-              </div>
-            )}
+            {login.error && (() => {
+              const err = getLoginError(login.error);
+              const isNetwork = !(login.error as any)?.response?.status;
+              return (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex gap-3">
+                  {isNetwork
+                    ? <WifiOff className="h-4 w-4 shrink-0 mt-0.5" />
+                    : <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  }
+                  <div className="space-y-0.5">
+                    <p className="font-medium">{err.message}</p>
+                    {err.hint && <p className="text-destructive/80 text-xs">{err.hint}</p>}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
