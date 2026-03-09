@@ -13,6 +13,12 @@ export const api = axios.create({
 // Endpoints that should never trigger a token refresh retry
 const AUTH_ENDPOINTS = ["/auth/refresh", "/auth/login", "/auth/register", "/auth/logout"];
 
+// Singleton promise: if a refresh is already in-flight, all concurrent 401
+// handlers wait for the same call instead of each firing their own request.
+// This prevents the race condition where multiple parallel requests each try
+// to rotate the same refresh token, causing a unique constraint violation.
+let refreshPromise: Promise<void> | null = null;
+
 // Response interceptor for handling token refresh
 api.interceptors.response.use(
   (response) => response,
@@ -33,7 +39,16 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        await api.post("/auth/refresh");
+        if (!refreshPromise) {
+          refreshPromise = api
+            .post("/auth/refresh")
+            .then(() => undefined)
+            .finally(() => {
+              refreshPromise = null;
+            });
+        }
+
+        await refreshPromise;
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh token is also expired/invalid — send user to login
