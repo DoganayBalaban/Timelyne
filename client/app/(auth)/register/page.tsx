@@ -6,7 +6,15 @@ import { Label } from "@/components/ui/label";
 import { useRegister } from "@/lib/hooks/useAuth";
 import { RegisterInput, registerSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Loader2, X, Zap, BarChart3, Clock, FileText } from "lucide-react";
+import {
+  BarChart3,
+  Check,
+  Clock,
+  FileText,
+  Loader2,
+  X,
+  Zap,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -45,10 +53,10 @@ export default function RegisterPage() {
     strengthCount <= 1
       ? { text: "Weak", color: "bg-red-500" }
       : strengthCount <= 3
-      ? { text: "Fair", color: "bg-amber-500" }
-      : strengthCount === 4
-      ? { text: "Good", color: "bg-blue-500" }
-      : { text: "Strong", color: "bg-emerald-500" };
+        ? { text: "Fair", color: "bg-amber-500" }
+        : strengthCount === 4
+          ? { text: "Good", color: "bg-blue-500" }
+          : { text: "Strong", color: "bg-emerald-500" };
 
   const onSubmit = (data: RegisterInput) => {
     registerMutation.mutate(data);
@@ -67,11 +75,11 @@ export default function RegisterPage() {
         {/* Logo */}
         <Link href="/" className="relative flex items-center gap-3 w-fit">
           <Image
-            src="/timelyne-logo.png"
+            src="/logo-wo-text.png"
             alt="Timelyne"
             width={32}
             height={32}
-            className="rounded brightness-200"
+            className="rounded"
           />
           <span className="text-white font-semibold text-lg tracking-tight">
             Timelyne
@@ -256,10 +264,19 @@ export default function RegisterPage() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     {[
                       { ok: passwordChecks.length, label: "8+ characters" },
-                      { ok: passwordChecks.uppercase, label: "Uppercase letter" },
-                      { ok: passwordChecks.lowercase, label: "Lowercase letter" },
+                      {
+                        ok: passwordChecks.uppercase,
+                        label: "Uppercase letter",
+                      },
+                      {
+                        ok: passwordChecks.lowercase,
+                        label: "Lowercase letter",
+                      },
                       { ok: passwordChecks.number, label: "Number" },
-                      { ok: passwordChecks.special, label: "Special character" },
+                      {
+                        ok: passwordChecks.special,
+                        label: "Special character",
+                      },
                     ].map((c) => (
                       <div
                         key={c.label}

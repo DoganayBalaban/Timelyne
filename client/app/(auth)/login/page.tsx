@@ -52,11 +52,11 @@ export default function LoginPage() {
         {/* Logo */}
         <Link href="/" className="relative flex items-center gap-3 w-fit">
           <Image
-            src="/timelyne-logo.png"
+            src="/logo-wo-text.png"
             alt="Timelyne"
             width={32}
             height={32}
-            className="rounded brightness-200"
+            className="rounded"
           />
           <span className="text-white font-semibold text-lg tracking-tight">
             Timelyne

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
-import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -27,7 +27,7 @@ export default function LandingNav() {
       <nav className="container mx-auto px-4 max-w-6xl h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
           <Image
-            src="/timelyne-logo.png"
+            src="/logo-wo-text.png"
             alt="Timelyne"
             width={30}
             height={30}
@@ -72,7 +72,11 @@ export default function LandingNav() {
           onClick={() => setMobileOpen((o) => !o)}
           aria-label="Toggle menu"
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
         </button>
       </nav>
 
