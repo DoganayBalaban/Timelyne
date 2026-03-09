@@ -1,11 +1,21 @@
-import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight, CheckCircle2, Clock, FileText, Users, BarChart3, DollarSign, Bell, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import LandingNav from "@/components/landing-nav";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import LandingNav from "@/components/landing-nav";
+import {
+  ArrowRight,
+  BarChart3,
+  Bell,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  FileText,
+  Users,
+  Zap,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 const features = [
   {
@@ -68,10 +78,30 @@ const steps = [
 ];
 
 const mockStats = [
-  { label: "Monthly Revenue", value: "$8,240", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { label: "Hours Tracked", value: "142 h", color: "text-blue-500", bg: "bg-blue-500/10" },
-  { label: "Active Projects", value: "7", color: "text-violet-500", bg: "bg-violet-500/10" },
-  { label: "Outstanding", value: "$1,800", color: "text-amber-500", bg: "bg-amber-500/10" },
+  {
+    label: "Monthly Revenue",
+    value: "$8,240",
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+  },
+  {
+    label: "Hours Tracked",
+    value: "142 h",
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+  },
+  {
+    label: "Active Projects",
+    value: "7",
+    color: "text-violet-500",
+    bg: "bg-violet-500/10",
+  },
+  {
+    label: "Outstanding",
+    value: "$1,800",
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
+  },
 ];
 
 const chartBars = [38, 62, 48, 80, 55, 92, 68, 85, 58, 96, 72, 100];
@@ -106,9 +136,9 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground leading-relaxed mb-10">
-            Stop juggling a dozen tools. Timelyne brings time tracking, invoicing,
-            project management, and client insights into one clean workspace — so
-            you can focus on the work that pays.
+            Stop juggling a dozen tools. Timelyne brings time tracking,
+            invoicing, project management, and client insights into one clean
+            workspace — so you can focus on the work that pays.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-5">
@@ -155,8 +185,13 @@ export default function Home() {
                 {/* Stat cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   {mockStats.map((s) => (
-                    <div key={s.label} className="rounded-xl border bg-card p-3.5">
-                      <div className={`mb-2 inline-flex h-7 w-7 items-center justify-center rounded-lg ${s.bg}`}>
+                    <div
+                      key={s.label}
+                      className="rounded-xl border bg-card p-3.5"
+                    >
+                      <div
+                        className={`mb-2 inline-flex h-7 w-7 items-center justify-center rounded-lg ${s.bg}`}
+                      >
                         <span className={`text-xs font-bold ${s.color}`}>
                           {s.label[0]}
                         </span>
@@ -164,7 +199,9 @@ export default function Home() {
                       <p className="text-[11px] text-muted-foreground leading-none mb-1">
                         {s.label}
                       </p>
-                      <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+                      <p className={`text-xl font-bold ${s.color}`}>
+                        {s.value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -196,13 +233,23 @@ export default function Home() {
                     <p className="text-sm font-semibold mb-3">Active clients</p>
                     <div className="space-y-2.5">
                       {[
-                        { name: "Acme Corp", hours: "48h", dot: "bg-violet-500" },
+                        {
+                          name: "Acme Corp",
+                          hours: "48h",
+                          dot: "bg-violet-500",
+                        },
                         { name: "Studio 99", hours: "31h", dot: "bg-blue-500" },
-                        { name: "DevHouse", hours: "27h", dot: "bg-emerald-500" },
+                        {
+                          name: "DevHouse",
+                          hours: "27h",
+                          dot: "bg-emerald-500",
+                        },
                         { name: "Pixel Co", hours: "19h", dot: "bg-amber-500" },
                       ].map((c) => (
                         <div key={c.name} className="flex items-center gap-2.5">
-                          <span className={`h-2 w-2 rounded-full shrink-0 ${c.dot}`} />
+                          <span
+                            className={`h-2 w-2 rounded-full shrink-0 ${c.dot}`}
+                          />
                           <span className="text-xs text-muted-foreground flex-1">
                             {c.name}
                           </span>
@@ -281,7 +328,9 @@ export default function Home() {
             {steps.map((step) => (
               <div key={step.number} className="flex flex-col items-start">
                 <div className="mb-5 h-14 w-14 rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0">
-                  <span className="text-white font-bold text-sm">{step.number}</span>
+                  <span className="text-white font-bold text-sm">
+                    {step.number}
+                  </span>
                 </div>
                 <h3 className="font-semibold text-xl mb-2">{step.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -322,8 +371,8 @@ export default function Home() {
             Start managing smarter today
           </h2>
           <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
-            Join freelancers who&apos;ve traded chaotic spreadsheets for a system
-            that works.
+            Join freelancers who&apos;ve traded chaotic spreadsheets for a
+            system that works.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">

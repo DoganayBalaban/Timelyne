@@ -55,17 +55,20 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-7xl mx-auto flex h-14 items-center px-6">
+      <div className="max-w-7xl gap-3 mx-auto flex h-14 items-center px-6">
         {/* Logo */}
-        <Link href="/dashboard" className="mr-8 flex items-center gap-2">
+        <Link
+          href="/dashboard"
+          className="flex items-center justify-center gap-2.5 shrink-0"
+        >
           <Image
-            className="dark:invert"
-            src="/timelyne-logo.png"
-            alt="Timelyne"
-            width={120}
-            height={34}
-            priority
+            src="/logo-wo-text.png"
+            alt="Flowbill"
+            width={30}
+            height={30}
+            className="rounded"
           />
+          <span className="font-semibold text-lg tracking-tight">Flowbill</span>
         </Link>
 
         {/* Nav Links */}

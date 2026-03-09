@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useLogin } from "@/lib/hooks/useAuth";
+import { useLogin, useUser } from "@/lib/hooks/useAuth";
 import { LoginInput, loginSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { useForm } from "react-hook-form";
-
 const features = [
   { icon: Clock, text: "Track billable hours effortlessly" },
   { icon: FileText, text: "Generate PDF invoices in one click" },
@@ -26,6 +26,11 @@ const features = [
 
 export default function LoginPage() {
   const login = useLogin();
+  const { data: user } = useUser();
+
+  if (user) {
+    redirect("/dashboard");
+  }
 
   const {
     register,
