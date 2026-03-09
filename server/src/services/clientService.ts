@@ -85,19 +85,30 @@ export class ClientService {
       hourly_rate?: number;
     },
   ) {
-    const client = await prisma.client.create({
-      data: {
-        user_id: userId,
-        name: data.name,
-        company: data.company,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        notes: data.notes,
-        hourly_rate: data.hourly_rate,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const client = await tx.client.create({
+        data: {
+          user_id: userId,
+          name: data.name,
+          company: data.company,
+          email: data.email,
+          phone: data.phone,
+          address: data.address,
+          notes: data.notes,
+          hourly_rate: data.hourly_rate,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "create",
+          entity_type: "client",
+          entity_id: client.id,
+          new_values: client,
+        },
+      });
+      return client;
     });
-    return client;
   }
 
   static async updateClient(
@@ -123,23 +134,35 @@ export class ClientService {
     if (!existingClient) {
       throw new AppError("Client not found", 404);
     }
-    const client = await prisma.client.update({
-      where: {
-        id: id,
-        user_id: userId,
-        deleted_at: null,
-      },
-      data: {
-        name: data.name,
-        company: data.company,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        notes: data.notes,
-        hourly_rate: data.hourly_rate,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const client = await tx.client.update({
+        where: {
+          id: id,
+          user_id: userId,
+          deleted_at: null,
+        },
+        data: {
+          name: data.name,
+          company: data.company,
+          email: data.email,
+          phone: data.phone,
+          address: data.address,
+          notes: data.notes,
+          hourly_rate: data.hourly_rate,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "update",
+          entity_type: "client",
+          entity_id: client.id,
+          old_values: existingClient,
+          new_values: client,
+        },
+      });
+      return client;
     });
-    return client;
   }
 
   static async deleteClient(id: string, userId: string) {
@@ -153,17 +176,28 @@ export class ClientService {
     if (!existingClient) {
       throw new AppError("Client not found", 404);
     }
-    const client = await prisma.client.update({
-      where: {
-        id: id,
-        user_id: userId,
-        deleted_at: null,
-      },
-      data: {
-        deleted_at: new Date(),
-      },
+    return await prisma.$transaction(async (tx) => {
+      const client = await tx.client.update({
+        where: {
+          id: id,
+          user_id: userId,
+          deleted_at: null,
+        },
+        data: {
+          deleted_at: new Date(),
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "delete",
+          entity_type: "client",
+          entity_id: client.id,
+          old_values: existingClient,
+        },
+      });
+      return client;
     });
-    return client;
   }
 
   static async getClientProjects(clientId: string, userId: string) {

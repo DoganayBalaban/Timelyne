@@ -110,6 +110,15 @@ export class InvoiceService {
             data: { invoiced: true, invoice_id: invoice.id },
           });
         }
+        await tx.auditLog.create({
+          data: {
+            user_id: userId,
+            action: "create",
+            entity_type: "invoice",
+            entity_id: invoice.id,
+            new_values: invoice,
+          },
+        });
         await redis.del(`dashboard:stats:${userId}`);
         await redis.del(`dashboard:revenue:${userId}`);
         return invoice;
@@ -329,6 +338,16 @@ export class InvoiceService {
             invoice_items: true,
           },
         });
+        await tx.auditLog.create({
+          data: {
+            user_id: userId,
+            action: "update",
+            entity_type: "invoice",
+            entity_id: invoiceId,
+            old_values: invoice,
+            new_values: updated,
+          },
+        });
         await redis.del(`dashboard:stats:${userId}`);
         await redis.del(`dashboard:revenue:${userId}`);
         return updated;
@@ -369,6 +388,15 @@ export class InvoiceService {
           },
           data: {
             deleted_at: new Date(),
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            user_id: userId,
+            action: "delete",
+            entity_type: "invoice",
+            entity_id: invoiceId,
+            old_values: invoice,
           },
         });
         await redis.del(`dashboard:stats:${userId}`);
@@ -590,6 +618,17 @@ export class InvoiceService {
             total_paid: {
               increment: paymentAmount,
             },
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            user_id: userId,
+            action: "update",
+            entity_type: "invoice",
+            entity_id: invoiceId,
+            old_values: { status: invoice.status, paid_at: invoice.paid_at },
+            new_values: { status: newStatus, paid_amount: paymentAmount },
           },
         });
 
