@@ -1,108 +1,225 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle
-} from "@/components/ui/card";
 import { useVerifyEmail } from "@/lib/hooks/useAuth";
-import { CheckCircle, Loader2, XCircle } from "lucide-react";
+import { ArrowRight, Loader2, MailCheck, MailX } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+
+type Status = "loading" | "success" | "error";
+
+/* ── Shared split layout ───────────────────────────────────── */
+function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen flex">
+      {/* Left panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-violet-500/20 blur-[100px]" />
+          <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-500/20 blur-[80px]" />
+        </div>
+
+        <Link href="/" className="relative flex items-center gap-3 w-fit">
+          <Image
+            src="/logo-wo-text.png"
+            alt="Timelyne"
+            width={32}
+            height={32}
+            className="rounded"
+          />
+          <span className="text-white font-semibold text-lg tracking-tight">
+            Timelyne
+          </span>
+        </Link>
+
+        <div className="relative space-y-4">
+          <p className="text-violet-300 text-sm font-medium uppercase tracking-widest">
+            One last step
+          </p>
+          <h1 className="text-4xl font-bold text-white leading-tight">
+            Confirming your email address
+          </h1>
+          <p className="text-violet-200/70 text-base leading-relaxed">
+            Email verification keeps your account secure and ensures you
+            receive important updates about your invoices and projects.
+          </p>
+        </div>
+
+        <div className="relative rounded-2xl bg-white/5 border border-white/10 p-5">
+          <p className="text-violet-100/70 text-sm leading-relaxed">
+            <span className="font-semibold text-white">Almost done.</span>{" "}
+            Once verified, you&apos;ll have full access to time tracking,
+            invoicing, and everything Timelyne has to offer.
+          </p>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 bg-background relative">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10">
+          <div className="absolute top-0 right-0 h-96 w-96 rounded-full bg-violet-500/5 blur-[100px]" />
+        </div>
+
+        <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
+          <Image
+            src="/logo-wo-text.png"
+            alt="Timelyne"
+            width={28}
+            height={28}
+            className="rounded dark:brightness-200"
+          />
+          <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+        </Link>
+
+        <div className="w-full max-w-sm">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function VerifyEmailPage() {
   const params = useParams();
   const token = params.token as string;
   const verifyEmail = useVerifyEmail();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<Status>("loading");
 
   useEffect(() => {
     if (token) {
       verifyEmail.mutate(token, {
-        onSuccess: () => {
-          setStatus("success");
-        },
-        onError: () => {
-          setStatus("error");
-        },
+        onSuccess: () => setStatus("success"),
+        onError: () => setStatus("error"),
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  /* ── Loading ─────────────────────────────────────────────── */
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <div className="mx-auto mb-4">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <Layout>
+        <div className="space-y-8 text-center">
+          <div className="flex justify-center">
+            <div className="h-20 w-20 rounded-2xl bg-violet-500/10 flex items-center justify-center">
+              <Loader2 className="h-9 w-9 text-violet-600 animate-spin" />
             </div>
-            <CardTitle className="text-2xl font-bold text-center">
-              E-posta Doğrulanıyor
-            </CardTitle>
-            <CardDescription className="text-center">
-              Lütfen bekleyin...
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Verifying your email
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Just a moment while we confirm your address…
+            </p>
+          </div>
+        </div>
+      </Layout>
     );
   }
 
+  /* ── Success ─────────────────────────────────────────────── */
   if (status === "success") {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+      <Layout>
+        <div className="space-y-8 text-center">
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="h-20 w-20 rounded-2xl bg-violet-500/10 flex items-center justify-center">
+                <MailCheck className="h-9 w-9 text-violet-600" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
+                <svg
+                  className="h-4 w-4 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
             </div>
-            <CardTitle className="text-2xl font-bold text-center">
-              E-posta Doğrulandı
-            </CardTitle>
-            <CardDescription className="text-center">
-              E-posta adresiniz başarıyla doğrulandı. Artık tüm özelliklere erişebilirsiniz.
-            </CardDescription>
-          </CardHeader>
+          </div>
 
-          <CardFooter>
-            <Link href="/dashboard" className="w-full">
-              <Button className="w-full">Dashboard'a Git</Button>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Email verified!
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Your email address has been confirmed. You now have full access
+              to your Timelyne account.
+            </p>
+          </div>
+
+          <Button
+            asChild
+            className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20"
+          >
+            <Link href="/dashboard">
+              Go to dashboard
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
-          </CardFooter>
-        </Card>
-      </div>
+          </Button>
+        </div>
+      </Layout>
     );
   }
 
+  /* ── Error ───────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
-            <XCircle className="h-6 w-6 text-destructive" />
+    <Layout>
+      <div className="space-y-8 text-center">
+        <div className="flex justify-center">
+          <div className="relative">
+            <div className="h-20 w-20 rounded-2xl bg-destructive/10 flex items-center justify-center">
+              <MailX className="h-9 w-9 text-destructive" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
+              <svg
+                className="h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">
-            Doğrulama Başarısız
-          </CardTitle>
-          <CardDescription className="text-center">
-            E-posta doğrulama bağlantısı geçersiz veya süresi dolmuş olabilir.
-          </CardDescription>
-        </CardHeader>
+        </div>
 
-        <CardFooter className="flex flex-col gap-2">
-          <Link href="/login" className="w-full">
-            <Button className="w-full">Giriş Yap</Button>
-          </Link>
-          <p className="text-sm text-muted-foreground text-center">
-            Giriş yaptıktan sonra yeni bir doğrulama e-postası isteyebilirsiniz.
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight">
+            Verification failed
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            This link is invalid or has expired. Verification links are only
+            valid for 24 hours.
           </p>
-        </CardFooter>
-      </Card>
-    </div>
+        </div>
+
+        <div className="space-y-3">
+          <Button
+            asChild
+            className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20"
+          >
+            <Link href="/login">Sign in to resend link</Link>
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            After signing in, you can request a new verification email from
+            your account settings.
+          </p>
+        </div>
+      </div>
+    </Layout>
   );
 }
