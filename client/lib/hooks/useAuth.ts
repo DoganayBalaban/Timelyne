@@ -40,7 +40,7 @@ export function useLogin() {
       const userData = await authApi.getMe();
       dispatch(setUser(userData.user));
       queryClient.setQueryData(["user"], userData.user);
-      
+
       // Check if onboarding is completed
       if (!userData.user.is_onboarding_completed) {
         router.push("/onboarding");
@@ -64,7 +64,7 @@ export function useRegister() {
       const userData = await authApi.getMe();
       dispatch(setUser(userData.user));
       queryClient.setQueryData(["user"], userData.user);
-      
+
       // New users always go to onboarding
       router.push("/onboarding");
     },
@@ -82,7 +82,7 @@ export function useLogout() {
     onSuccess: () => {
       dispatch(logoutAction());
       queryClient.clear();
-      router.push("/login");
+      router.push("/");
     },
   });
 }
