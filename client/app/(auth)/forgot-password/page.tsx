@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForgotPassword } from "@/lib/hooks/useAuth";
-import { ForgotPasswordInput, forgotPasswordSchema } from "@/lib/validations/auth";
+import {
+  ForgotPasswordInput,
+  forgotPasswordSchema,
+} from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
 import Image from "next/image";
@@ -43,14 +46,14 @@ export default function ForgotPasswordPage() {
       {/* Logo */}
       <Link href="/" className="relative flex items-center gap-3 w-fit">
         <Image
-          src="/timelyne-logo.png"
-          alt="Timelyne"
+          src="/logo-wo-text.png"
+          alt="Flowbill"
           width={32}
           height={32}
           className="rounded brightness-200"
         />
         <span className="text-white font-semibold text-lg tracking-tight">
-          Timelyne
+          Flowbill
         </span>
       </Link>
 
@@ -64,15 +67,18 @@ export default function ForgotPasswordPage() {
             We&apos;ll get you back in seconds
           </h1>
           <p className="text-violet-200/70 text-base leading-relaxed">
-            Enter the email linked to your account and we&apos;ll send a
-            secure reset link straight to your inbox.
+            Enter the email linked to your account and we&apos;ll send a secure
+            reset link straight to your inbox.
           </p>
         </div>
 
         <ul className="space-y-3">
           {[
             { icon: Mail, text: "Reset link sent to your inbox" },
-            { icon: ShieldCheck, text: "Link expires after 1 hour for security" },
+            {
+              icon: ShieldCheck,
+              text: "Link expires after 1 hour for security",
+            },
             { icon: KeyRound, text: "Choose a new password immediately" },
           ].map((item) => (
             <li key={item.text} className="flex items-center gap-3">
@@ -88,9 +94,8 @@ export default function ForgotPasswordPage() {
       {/* Bottom tip */}
       <div className="relative rounded-2xl bg-white/5 border border-white/10 p-5">
         <p className="text-violet-100/70 text-sm leading-relaxed">
-          <span className="font-semibold text-white">Tip:</span> Check your
-          spam folder if the email doesn&apos;t arrive within a couple of
-          minutes.
+          <span className="font-semibold text-white">Tip:</span> Check your spam
+          folder if the email doesn&apos;t arrive within a couple of minutes.
         </p>
       </div>
     </div>
@@ -110,13 +115,15 @@ export default function ForgotPasswordPage() {
           {/* Mobile logo */}
           <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
             <Image
-              src="/timelyne-logo.png"
-              alt="Timelyne"
+              src="/logo-wo-text.png"
+              alt="Flowbill"
               width={28}
               height={28}
               className="rounded dark:brightness-200"
             />
-            <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+            <span className="font-semibold text-lg tracking-tight">
+              Flowbill
+            </span>
           </Link>
 
           <div className="w-full max-w-sm space-y-8 text-center">
@@ -127,15 +134,27 @@ export default function ForgotPasswordPage() {
                   <Mail className="h-9 w-9 text-violet-600" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
-                  <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight">Check your inbox</h2>
+              <h2 className="text-2xl font-bold tracking-tight">
+                Check your inbox
+              </h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 We sent a password reset link to{" "}
                 <span className="font-medium text-foreground">
@@ -146,7 +165,9 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div className="rounded-xl border bg-muted/40 p-4 text-left space-y-2">
-              <p className="text-xs font-medium text-foreground">Didn&apos;t receive it?</p>
+              <p className="text-xs font-medium text-foreground">
+                Didn&apos;t receive it?
+              </p>
               <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Check your spam or junk folder</li>
                 <li>Make sure you used the right email address</li>
@@ -179,13 +200,13 @@ export default function ForgotPasswordPage() {
         {/* Mobile logo */}
         <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
           <Image
-            src="/timelyne-logo.png"
-            alt="Timelyne"
+            src="/logo-wo-text.png"
+            alt="Flowbill"
             width={28}
             height={28}
             className="rounded dark:brightness-200"
           />
-          <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+          <span className="font-semibold text-lg tracking-tight">Flowbill</span>
         </Link>
 
         <div className="w-full max-w-sm space-y-8">
@@ -195,9 +216,12 @@ export default function ForgotPasswordPage() {
               <KeyRound className="h-6 w-6 text-violet-600" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold tracking-tight">Forgot password?</h2>
+              <h2 className="text-2xl font-bold tracking-tight">
+                Forgot password?
+              </h2>
               <p className="text-sm text-muted-foreground">
-                No worries. Enter your email and we&apos;ll send you a reset link.
+                No worries. Enter your email and we&apos;ll send you a reset
+                link.
               </p>
             </div>
           </div>
@@ -223,7 +247,9 @@ export default function ForgotPasswordPage() {
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -240,7 +266,11 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
 
-          <Button asChild variant="ghost" className="w-full h-10 text-muted-foreground">
+          <Button
+            asChild
+            variant="ghost"
+            className="w-full h-10 text-muted-foreground"
+          >
             <Link href="/login">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to sign in

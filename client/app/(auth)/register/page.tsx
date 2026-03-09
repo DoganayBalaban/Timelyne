@@ -96,13 +96,13 @@ export default function RegisterPage() {
         <Link href="/" className="relative flex items-center gap-3 w-fit">
           <Image
             src="/logo-wo-text.png"
-            alt="Timelyne"
+            alt="Flowbill"
             width={32}
             height={32}
             className="rounded"
           />
           <span className="text-white font-semibold text-lg tracking-tight">
-            Timelyne
+            Flowbill
           </span>
         </Link>
 
@@ -160,13 +160,13 @@ export default function RegisterPage() {
         {/* Mobile logo */}
         <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
           <Image
-            src="/timelyne-logo.png"
-            alt="Timelyne"
+            src="/logo-wo-text.png"
+            alt="Flowbill"
             width={28}
             height={28}
             className="rounded dark:brightness-200"
           />
-          <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+          <span className="font-semibold text-lg tracking-tight">Flowbill</span>
         </Link>
 
         <div className="w-full max-w-sm space-y-8">
@@ -182,55 +182,67 @@ export default function RegisterPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {registerMutation.error && (() => {
-              const err = getRegisterError(registerMutation.error);
+            {registerMutation.error &&
+              (() => {
+                const err = getRegisterError(registerMutation.error);
 
-              if (err.kind === "email_taken") {
-                return (
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400 flex gap-3">
-                    <UserRoundX className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <p className="font-medium">An account with this email already exists.</p>
-                      <p className="text-xs opacity-80">
-                        <Link href="/login" className="underline underline-offset-2 hover:opacity-100">
-                          Sign in instead
-                        </Link>
-                        {" "}or use a different email address.
-                      </p>
+                if (err.kind === "email_taken") {
+                  return (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400 flex gap-3">
+                      <UserRoundX className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="font-medium">
+                          An account with this email already exists.
+                        </p>
+                        <p className="text-xs opacity-80">
+                          <Link
+                            href="/login"
+                            className="underline underline-offset-2 hover:opacity-100"
+                          >
+                            Sign in instead
+                          </Link>{" "}
+                          or use a different email address.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              }
+                  );
+                }
 
-              if (err.kind === "network") {
+                if (err.kind === "network") {
+                  return (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex gap-3">
+                      <WifiOff className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="font-medium">
+                          Unable to connect to the server.
+                        </p>
+                        <p className="text-xs text-destructive/80">
+                          Check your internet connection and try again.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const message =
+                  err.kind === "server"
+                    ? "Something went wrong on our end."
+                    : err.message;
+                const hint =
+                  err.kind === "server"
+                    ? "Please try again in a moment."
+                    : "Please try again.";
+
                 return (
                   <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex gap-3">
-                    <WifiOff className="h-4 w-4 shrink-0 mt-0.5" />
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                     <div className="space-y-0.5">
-                      <p className="font-medium">Unable to connect to the server.</p>
-                      <p className="text-xs text-destructive/80">Check your internet connection and try again.</p>
+                      <p className="font-medium">{message}</p>
+                      <p className="text-xs text-destructive/80">{hint}</p>
                     </div>
                   </div>
                 );
-              }
-
-              const message =
-                err.kind === "server"
-                  ? "Something went wrong on our end."
-                  : err.message;
-              const hint =
-                err.kind === "server" ? "Please try again in a moment." : "Please try again.";
-
-              return (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex gap-3">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5">
-                    <p className="font-medium">{message}</p>
-                    <p className="text-xs text-destructive/80">{hint}</p>
-                  </div>
-                </div>
-              );
-            })()}
+              })()}
 
             {/* Name row */}
             <div className="grid grid-cols-2 gap-3">

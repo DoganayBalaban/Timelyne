@@ -28,12 +28,12 @@ export default function LandingNav() {
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
           <Image
             src="/logo-wo-text.png"
-            alt="Timelyne"
+            alt="Flowbill"
             width={30}
             height={30}
             className="rounded"
           />
-          <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+          <span className="font-semibold text-lg tracking-tight">Flowbill</span>
         </Link>
 
         {/* Desktop links */}

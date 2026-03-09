@@ -136,7 +136,7 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground leading-relaxed mb-10">
-            Stop juggling a dozen tools. Timelyne brings time tracking,
+            Stop juggling a dozen tools. Flowbill brings time tracking,
             invoicing, project management, and client insights into one clean
             workspace — so you can focus on the work that pays.
           </p>
@@ -409,13 +409,13 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2.5">
               <Image
-                src="/timelyne-logo.png"
-                alt="Timelyne"
+                src="/logo-wo-text.png"
+                alt="Flowbill"
                 width={26}
                 height={26}
                 className="rounded"
               />
-              <span className="font-semibold tracking-tight">Timelyne</span>
+              <span className="font-semibold tracking-tight">Flowbill</span>
             </div>
 
             <Separator orientation="vertical" className="hidden md:block h-4" />

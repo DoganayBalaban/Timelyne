@@ -4,9 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useResetPassword } from "@/lib/hooks/useAuth";
-import { ResetPasswordInput, resetPasswordSchema } from "@/lib/validations/auth";
+import {
+  ResetPasswordInput,
+  resetPasswordSchema,
+} from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Check, KeyRound, Loader2, ShieldCheck, X } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  KeyRound,
+  Loader2,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -43,15 +53,15 @@ export default function ResetPasswordPage() {
     strengthCount <= 1
       ? { text: "Weak", color: "bg-red-500" }
       : strengthCount <= 3
-      ? { text: "Fair", color: "bg-amber-500" }
-      : strengthCount === 4
-      ? { text: "Good", color: "bg-blue-500" }
-      : { text: "Strong", color: "bg-emerald-500" };
+        ? { text: "Fair", color: "bg-amber-500" }
+        : strengthCount === 4
+          ? { text: "Good", color: "bg-blue-500" }
+          : { text: "Strong", color: "bg-emerald-500" };
 
   const onSubmit = (data: ResetPasswordInput) => {
     resetPassword.mutate(
       { token, password: data.password },
-      { onSuccess: () => setSuccess(true) }
+      { onSuccess: () => setSuccess(true) },
     );
   };
 
@@ -66,13 +76,13 @@ export default function ResetPasswordPage() {
       <Link href="/" className="relative flex items-center gap-3 w-fit">
         <Image
           src="/logo-wo-text.png"
-          alt="Timelyne"
+          alt="Flowbill"
           width={32}
           height={32}
           className="rounded"
         />
         <span className="text-white font-semibold text-lg tracking-tight">
-          Timelyne
+          Flowbill
         </span>
       </Link>
 
@@ -93,8 +103,14 @@ export default function ResetPasswordPage() {
         <ul className="space-y-3">
           {[
             { icon: ShieldCheck, text: "At least 8 characters long" },
-            { icon: ShieldCheck, text: "Mix of uppercase and lowercase letters" },
-            { icon: ShieldCheck, text: "At least one number and special character" },
+            {
+              icon: ShieldCheck,
+              text: "Mix of uppercase and lowercase letters",
+            },
+            {
+              icon: ShieldCheck,
+              text: "At least one number and special character",
+            },
           ].map((item) => (
             <li key={item.text} className="flex items-center gap-3">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
@@ -130,12 +146,14 @@ export default function ResetPasswordPage() {
           <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
             <Image
               src="/logo-wo-text.png"
-              alt="Timelyne"
+              alt="Flowbill"
               width={28}
               height={28}
               className="rounded dark:brightness-200"
             />
-            <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+            <span className="font-semibold text-lg tracking-tight">
+              Flowbill
+            </span>
           </Link>
 
           <div className="w-full max-w-sm space-y-8 text-center">
@@ -145,8 +163,18 @@ export default function ResetPasswordPage() {
                   <KeyRound className="h-9 w-9 text-violet-600" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
-                  <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
               </div>
@@ -157,8 +185,8 @@ export default function ResetPasswordPage() {
                 Password updated
               </h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Your password has been changed successfully. You can now sign
-                in with your new password.
+                Your password has been changed successfully. You can now sign in
+                with your new password.
               </p>
             </div>
 
@@ -190,12 +218,12 @@ export default function ResetPasswordPage() {
         <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
           <Image
             src="/logo-wo-text.png"
-            alt="Timelyne"
+            alt="Flowbill"
             width={28}
             height={28}
             className="rounded dark:brightness-200"
           />
-          <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+          <span className="font-semibold text-lg tracking-tight">Flowbill</span>
         </Link>
 
         <div className="w-full max-w-sm space-y-8">
@@ -246,7 +274,9 @@ export default function ResetPasswordPage() {
                         <div
                           key={i}
                           className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                            i <= strengthCount ? strengthLabel.color : "bg-muted"
+                            i <= strengthCount
+                              ? strengthLabel.color
+                              : "bg-muted"
                           }`}
                         />
                       ))}
@@ -259,10 +289,19 @@ export default function ResetPasswordPage() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     {[
                       { ok: passwordChecks.length, label: "8+ characters" },
-                      { ok: passwordChecks.uppercase, label: "Uppercase letter" },
-                      { ok: passwordChecks.lowercase, label: "Lowercase letter" },
+                      {
+                        ok: passwordChecks.uppercase,
+                        label: "Uppercase letter",
+                      },
+                      {
+                        ok: passwordChecks.lowercase,
+                        label: "Lowercase letter",
+                      },
                       { ok: passwordChecks.number, label: "Number" },
-                      { ok: passwordChecks.special, label: "Special character" },
+                      {
+                        ok: passwordChecks.special,
+                        label: "Special character",
+                      },
                     ].map((c) => (
                       <div
                         key={c.label}

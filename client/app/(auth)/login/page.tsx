@@ -79,13 +79,13 @@ export default function LoginPage() {
         <Link href="/" className="relative flex items-center gap-3 w-fit">
           <Image
             src="/logo-wo-text.png"
-            alt="Timelyne"
+            alt="Flowbill"
             width={32}
             height={32}
             className="rounded"
           />
           <span className="text-white font-semibold text-lg tracking-tight">
-            Timelyne
+            Flowbill
           </span>
         </Link>
 
@@ -119,7 +119,7 @@ export default function LoginPage() {
         {/* Bottom quote */}
         <div className="relative rounded-2xl bg-white/5 border border-white/10 p-5">
           <p className="text-violet-100/80 text-sm leading-relaxed italic">
-            &ldquo;Timelyne cut the time I spend on admin from hours to minutes.
+            &ldquo;Flowbill cut the time I spend on admin from hours to minutes.
             I finally know exactly what I&apos;m earning.&rdquo;
           </p>
           <div className="mt-3 flex items-center gap-2">
@@ -144,13 +144,13 @@ export default function LoginPage() {
         {/* Mobile logo */}
         <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
           <Image
-            src="/timelyne-logo.png"
-            alt="Timelyne"
+            src="/logo-wo-text.png"
+            alt="Flowbill"
             width={28}
             height={28}
             className="rounded dark:brightness-200"
           />
-          <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+          <span className="font-semibold text-lg tracking-tight">Flowbill</span>
         </Link>
 
         <div className="w-full max-w-sm space-y-8">
@@ -164,22 +164,28 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {login.error && (() => {
-              const err = getLoginError(login.error);
-              const isNetwork = !(login.error as any)?.response?.status;
-              return (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex gap-3">
-                  {isNetwork
-                    ? <WifiOff className="h-4 w-4 shrink-0 mt-0.5" />
-                    : <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  }
-                  <div className="space-y-0.5">
-                    <p className="font-medium">{err.message}</p>
-                    {err.hint && <p className="text-destructive/80 text-xs">{err.hint}</p>}
+            {login.error &&
+              (() => {
+                const err = getLoginError(login.error);
+                const isNetwork = !(login.error as any)?.response?.status;
+                return (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex gap-3">
+                    {isNetwork ? (
+                      <WifiOff className="h-4 w-4 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    )}
+                    <div className="space-y-0.5">
+                      <p className="font-medium">{err.message}</p>
+                      {err.hint && (
+                        <p className="text-destructive/80 text-xs">
+                          {err.hint}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
