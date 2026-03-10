@@ -110,6 +110,18 @@ export interface TimeEntry {
   } | null;
 }
 
+export interface Attachment {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  invoice_id: string | null;
+  filename: string;
+  file_url: string;
+  file_size: number | null;
+  mime_type: string | null;
+  uploaded_at: string;
+}
+
 export interface ProjectStats {
   tasks: {
     total: number;
@@ -175,12 +187,22 @@ export const projectsApi = {
     return response.data;
   },
 
-  addAttachment: async (id: string, file: File): Promise<{ success: boolean; message: string; attachment: unknown }> => {
+  addAttachment: async (id: string, file: File): Promise<{ success: boolean; message: string; attachment: Attachment }> => {
     const formData = new FormData();
     formData.append("file", file);
     const response = await api.post(`/projects/${id}/attachments`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+    return response.data;
+  },
+
+  getProjectAttachments: async (id: string): Promise<{ success: boolean; message: string; attachments: Attachment[] }> => {
+    const response = await api.get(`/projects/${id}/attachments`);
+    return response.data;
+  },
+
+  deleteAttachment: async (projectId: string, attachmentId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete(`/projects/${projectId}/attachments/${attachmentId}`);
     return response.data;
   },
 };
