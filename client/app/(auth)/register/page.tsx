@@ -386,13 +386,19 @@ export default function RegisterPage() {
 
             <p className="text-center text-xs text-muted-foreground leading-relaxed">
               By creating an account you agree to our{" "}
-              <span className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors">
+              <Link
+                href="/terms"
+                className="underline underline-offset-2 hover:text-foreground transition-colors"
+              >
                 Terms of Service
-              </span>{" "}
+              </Link>{" "}
               and{" "}
-              <span className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors">
+              <Link
+                href="/privacy"
+                className="underline underline-offset-2 hover:text-foreground transition-colors"
+              >
                 Privacy Policy
-              </span>
+              </Link>
               .
             </p>
           </form>

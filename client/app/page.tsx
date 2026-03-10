@@ -445,6 +445,18 @@ export default function Home() {
               >
                 Register
               </Link>
+              <Link
+                href="/terms"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Terms
+              </Link>
+              <Link
+                href="/privacy"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Privacy
+              </Link>
             </nav>
 
             <p className="text-sm text-muted-foreground">
