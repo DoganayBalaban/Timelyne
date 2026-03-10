@@ -23,6 +23,8 @@
     "@types/multer-s3": "^3.0.3",
     "@types/node": "^25.0.6",
     "@types/pdfkit": "^0.17.5",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "@types/winston": "^2.4.4",
     "nodemon": "^3.1.11",
     "prisma": "^6.19.1",
@@ -52,6 +54,8 @@
     "pdfkit-table": "^0.1.99",
     "resend": "^6.7.0",
     "socket.io": "^4.8.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
     "winston": "^3.19.0",
     "zod": "^4.3.5"
