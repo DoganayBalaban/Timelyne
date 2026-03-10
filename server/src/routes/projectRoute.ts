@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addProjectAttachment, createProject, deleteProject, getAllProjects, getProjectById, getProjectStats, getProjectTasks, getProjectTimeEntries, updateProject } from "../controllers/projectControllers";
+import { addProjectAttachment, createProject, deleteProject, deleteProjectAttachment, getAllProjects, getProjectAttachments, getProjectById, getProjectStats, getProjectTasks, getProjectTimeEntries, updateProject } from "../controllers/projectControllers";
 import { protect } from "../middlewares/authMiddleware";
 import upload from "../middlewares/uploadMiddleware";
 
@@ -178,7 +178,9 @@ router.delete("/:id",protect,deleteProject)
 router.get("/:id/stats",protect,getProjectStats)
 router.get("/:id/time-entries",protect,getProjectTimeEntries)
 router.get("/:id/tasks",protect,getProjectTasks)
+router.get("/:id/attachments",protect,getProjectAttachments)
 router.post("/:id/attachments",protect,upload.single("file"),addProjectAttachment)
+router.delete("/:id/attachments/:attachmentId",protect,deleteProjectAttachment)
 
 
 export default router;

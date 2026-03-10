@@ -94,6 +94,16 @@ export function useProjectStats(id: string) {
   });
 }
 
+// List attachments
+export function useProjectAttachments(id: string) {
+  return useQuery({
+    queryKey: ["projects", id, "attachments"],
+    queryFn: () => projectsApi.getProjectAttachments(id),
+    select: (data) => data.attachments,
+    enabled: !!id,
+  });
+}
+
 // Add attachment
 export function useAddProjectAttachment() {
   const queryClient = useQueryClient();
@@ -102,7 +112,20 @@ export function useAddProjectAttachment() {
     mutationFn: ({ id, file }: { id: string; file: File }) =>
       projectsApi.addAttachment(id, file),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["projects", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["projects", variables.id, "attachments"] });
+    },
+  });
+}
+
+// Delete attachment
+export function useDeleteProjectAttachment(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (attachmentId: string) =>
+      projectsApi.deleteAttachment(projectId, attachmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "attachments"] });
     },
   });
 }

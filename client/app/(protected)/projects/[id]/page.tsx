@@ -12,6 +12,17 @@ import {
 } from "@/components/kibo-ui/kanban";
 import { ProjectFormDialog } from "@/components/project-form-dialog";
 import { TaskFormDialog } from "@/components/task-form-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,9 +49,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Task } from "@/lib/api/projects";
+import { Attachment, Task } from "@/lib/api/projects";
 import {
+  useAddProjectAttachment,
+  useDeleteProjectAttachment,
   useProject,
+  useProjectAttachments,
   useProjectStats,
   useProjectTasks,
   useProjectTimeEntries,
@@ -53,20 +67,24 @@ import {
   CheckCircle2,
   Clock,
   DollarSign,
+  Download,
+  FileText,
   FolderOpen,
   ListTodo,
   Loader2,
   MoreHorizontal,
+  Paperclip,
   Pencil,
   Plus,
   Receipt,
   Timer,
   Trash2,
   TrendingUp,
+  Upload,
   User,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Kanban task item type (Task + column field for drag-and-drop)
 type KanbanTaskItem = Task & KanbanItem;
@@ -304,7 +322,7 @@ export default function ProjectDetailPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="tasks">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="tasks" className="flex items-center gap-2">
               <ListTodo className="h-4 w-4" />
               Tasks
@@ -320,6 +338,10 @@ export default function ProjectDetailPage() {
               <TrendingUp className="h-4 w-4" />
               Statistics
             </TabsTrigger>
+            <TabsTrigger value="attachments" className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />
+              Files
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="tasks" className="mt-4">
@@ -330,6 +352,9 @@ export default function ProjectDetailPage() {
           </TabsContent>
           <TabsContent value="stats" className="mt-4">
             <StatsTab projectId={projectId} />
+          </TabsContent>
+          <TabsContent value="attachments" className="mt-4">
+            <AttachmentsTab projectId={projectId} />
           </TabsContent>
         </Tabs>
       </div>
@@ -795,6 +820,175 @@ function StatsTab({ projectId }: { projectId: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+// Attachments Tab
+function AttachmentsTab({ projectId }: { projectId: string }) {
+  const { data: attachments, isLoading } = useProjectAttachments(projectId);
+  const addAttachment = useAddProjectAttachment();
+  const deleteAttachment = useDeleteProjectAttachment(projectId);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    addAttachment.mutate({ id: projectId, file });
+    e.target.value = "";
+  };
+
+  function formatFileSize(bytes: number | null | undefined) {
+    if (!bytes) return "—";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function getFileIcon(mimeType: string | null | undefined) {
+    if (!mimeType) return <FileText className="h-5 w-5 text-muted-foreground" />;
+    if (mimeType.startsWith("image/")) return <FileText className="h-5 w-5 text-blue-500" />;
+    if (mimeType === "application/pdf") return <FileText className="h-5 w-5 text-red-500" />;
+    return <FileText className="h-5 w-5 text-muted-foreground" />;
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Paperclip className="h-5 w-5" />
+            Attachments
+          </CardTitle>
+          <CardDescription>
+            {attachments?.length ?? 0} file{(attachments?.length ?? 0) !== 1 ? "s" : ""} — max 10 MB per file
+          </CardDescription>
+        </div>
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={addAttachment.isPending}
+          >
+            {addAttachment.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            Upload File
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {!attachments || attachments.length === 0 ? (
+          <div className="text-center py-12 space-y-2">
+            <Paperclip className="mx-auto h-10 w-10 text-muted-foreground/50" />
+            <p className="text-muted-foreground">No attachments yet.</p>
+            <p className="text-xs text-muted-foreground">
+              Upload contracts, briefs, or deliverables to keep everything in one place.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>File</TableHead>
+                  <TableHead className="hidden sm:table-cell">Type</TableHead>
+                  <TableHead className="hidden md:table-cell">Size</TableHead>
+                  <TableHead className="hidden lg:table-cell">Uploaded</TableHead>
+                  <TableHead className="w-20 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attachments.map((att: Attachment) => (
+                  <TableRow key={att.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getFileIcon(att.mime_type)}
+                        <span className="font-medium text-sm truncate max-w-[180px]">
+                          {att.filename}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="text-xs text-muted-foreground">
+                        {att.mime_type ?? "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {formatFileSize(att.file_size)}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {formatDate(att.uploaded_at)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          asChild
+                        >
+                          <a href={att.file_url} target="_blank" rel="noreferrer" download>
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Attachment</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete &quot;{att.filename}&quot;? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteAttachment.mutate(att.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

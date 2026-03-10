@@ -120,6 +120,34 @@ export class ProjectService {
     return attachment;
   }
 
+  static async getProjectAttachments(userId: string, projectId: string) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId, user_id: userId, deleted_at: null },
+    });
+
+    if (!project) {
+      throw new AppError("Project not found", 404);
+    }
+
+    return prisma.attachment.findMany({
+      where: { project_id: projectId },
+      orderBy: { uploaded_at: "desc" },
+    });
+  }
+
+  static async deleteAttachment(userId: string, projectId: string, attachmentId: string) {
+    const attachment = await prisma.attachment.findFirst({
+      where: { id: attachmentId, project_id: projectId, user_id: userId },
+    });
+
+    if (!attachment) {
+      throw new AppError("Attachment not found", 404);
+    }
+
+    await prisma.attachment.delete({ where: { id: attachmentId } });
+    return attachment;
+  }
+
   static async getProjectById(userId: string, projectId: string) {
     const project = await prisma.project.findUnique({
       where: {
