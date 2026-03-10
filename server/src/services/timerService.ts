@@ -50,6 +50,15 @@ export class TimerService {
           hourly_rate: project.hourly_rate,
         },
       });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "create",
+          entity_type: "time_entry",
+          entity_id: newEntry.id,
+          new_values: newEntry,
+        },
+      });
       return newEntry;
     });
     await redis.set(
@@ -103,6 +112,16 @@ export class TimerService {
         data: {
           ended_at: endedAt,
           duration_minutes: durationMinutes,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "update",
+          entity_type: "time_entry",
+          entity_id: updated.id,
+          old_values: entry,
+          new_values: updated,
         },
       });
       return updated;
@@ -229,6 +248,15 @@ export class TimerService {
           duration_minutes: durationMinutes,
           date: start,
           hourly_rate: project.hourly_rate,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "create",
+          entity_type: "time_entry",
+          entity_id: newEntry.id,
+          new_values: newEntry,
         },
       });
       return newEntry;
@@ -431,18 +459,31 @@ export class TimerService {
       durationMinutes = 0;
     }
 
-    const updated = await prisma.timeEntry.update({
-      where: { id: timerId },
-      data: {
-        description: data.description,
-        started_at: newStartedAt,
-        ended_at: newEndedAt,
-        duration_minutes: durationMinutes,
-        billable: data.billable,
-        task_id: data.taskId,
-        project_id: data.projectId,
-        date: newStartedAt,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const entry = await tx.timeEntry.update({
+        where: { id: timerId },
+        data: {
+          description: data.description,
+          started_at: newStartedAt,
+          ended_at: newEndedAt,
+          duration_minutes: durationMinutes,
+          billable: data.billable,
+          task_id: data.taskId,
+          project_id: data.projectId,
+          date: newStartedAt,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "update",
+          entity_type: "time_entry",
+          entity_id: timerId,
+          old_values: existing,
+          new_values: entry,
+        },
+      });
+      return entry;
     });
 
     await redis.del(`dashboard:stats:${userId}`);
@@ -474,13 +515,24 @@ export class TimerService {
       }
     }
 
-    await prisma.timeEntry.update({
-      where: {
-        id: timerId,
-      },
-      data: {
-        deleted_at: new Date(),
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.timeEntry.update({
+        where: {
+          id: timerId,
+        },
+        data: {
+          deleted_at: new Date(),
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "delete",
+          entity_type: "time_entry",
+          entity_id: timerId,
+          old_values: existing,
+        },
+      });
     });
     await redis.del(`dashboard:stats:${userId}`);
     return true;

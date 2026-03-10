@@ -234,7 +234,9 @@ Alternatively, you can run the entire stack using Docker:
 
 3. Access the application
    - Client: http://localhost:3000
-   - Server: http://localhost:5001
+   - Server API: http://localhost:5001
+   - API Docs (Swagger): http://localhost:5001/api/docs
+   - Health Check: http://localhost:5001/api/health
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -303,6 +305,11 @@ No clutter. No unnecessary features. Just what you need.
 - Zod-based input validation
 - Helmet security headers
 
+### 🩺 Observability
+
+- `GET /api/health` — live DB + Redis status with latency measurements (200/503)
+- `GET /api/docs` — interactive Swagger UI (OpenAPI 3.0) for all endpoints
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ARCHITECTURE -->
@@ -333,7 +340,7 @@ timelyne/
 │       ├── validators/      # Zod schemas
 │       ├── queues/          # BullMQ job queues
 │       ├── workers/         # Background job processors
-│       ├── config/          # DB, Redis, S3 config
+│       ├── config/          # DB, Redis, S3, Swagger config
 │       └── utils/           # Helpers & utilities
 │
 └── docker-compose.yml       # Full-stack Docker setup
@@ -351,9 +358,9 @@ timelyne/
 - [x] Automated invoicing with PDF generation
 - [x] Financial dashboard
 - [x] Real-time notifications
-- [x] Docker deployment
-- [ ] Email notifications & reminders
-- [ ] Multi-language support
+- [x] Docker deployment with health checks
+- [x] Email notifications & reminders (Resend)
+- [x] REST API documentation (Swagger / OpenAPI 3.0)
 - [ ] Team support for small agencies
 - [ ] Mobile app
 

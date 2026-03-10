@@ -1,54 +1,51 @@
 import { z } from "zod";
 
-// Register schema - matches backend validation
+const passwordSchema = z
+  .string()
+  .min(8, "Must be at least 8 characters")
+  .max(255, "Password is too long")
+  .regex(/[A-Z]/, "Must include an uppercase letter")
+  .regex(/[a-z]/, "Must include a lowercase letter")
+  .regex(/[0-9]/, "Must include a number")
+  .regex(/[^A-Za-z0-9]/, "Must include a special character");
+
+// Register schema
 export const registerSchema = z.object({
   email: z
     .string()
-    .email("Geçerli bir e-posta adresi girin")
-    .max(255, "E-posta çok uzun"),
-  password: z
-    .string()
-    .min(8, "Şifre en az 8 karakter olmalı")
-    .max(255, "Şifre çok uzun")
-    .regex(/[A-Z]/, "Şifre en az bir büyük harf içermelidir")
-    .regex(/[a-z]/, "Şifre en az bir küçük harf içermelidir")
-    .regex(/[0-9]/, "Şifre en az bir rakam içermelidir")
-    .regex(/[^A-Za-z0-9]/, "Şifre en az bir özel karakter içermelidir"),
-  firstName: z.string().min(1, "İsim zorunlu").max(100, "İsim çok uzun"),
-  lastName: z.string().min(1, "Soyisim zorunlu").max(100, "Soyisim çok uzun"),
+    .email("Enter a valid email address")
+    .max(255, "Email is too long"),
+  password: passwordSchema,
+  firstName: z.string().min(1, "First name is required").max(100, "First name is too long"),
+  lastName: z.string().min(1, "Last name is required").max(100, "Last name is too long"),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 // Login schema
 export const loginSchema = z.object({
-  email: z.string().email("Geçerli bir e-posta adresi girin"),
-  password: z.string().min(1, "Şifre zorunlu"),
+  email: z.string().email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
 // Forgot password schema
 export const forgotPasswordSchema = z.object({
-  email: z.string().email("Geçerli bir e-posta adresi girin"),
+  email: z.string().email("Enter a valid email address"),
 });
 
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 // Reset password schema
-export const resetPasswordSchema = z.object({
-  password: z
-    .string()
-    .min(8, "Şifre en az 8 karakter olmalı")
-    .max(255, "Şifre çok uzun")
-    .regex(/[A-Z]/, "Şifre en az bir büyük harf içermelidir")
-    .regex(/[a-z]/, "Şifre en az bir küçük harf içermelidir")
-    .regex(/[0-9]/, "Şifre en az bir rakam içermelidir")
-    .regex(/[^A-Za-z0-9]/, "Şifre en az bir özel karakter içermelidir"),
-  confirmPassword: z.string().min(1, "Şifre tekrarı zorunlu"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Şifreler eşleşmiyor",
-  path: ["confirmPassword"],
-});
+export const resetPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

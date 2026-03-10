@@ -69,21 +69,32 @@ export class ProjectService {
       color?: string;
     },
   ) {
-    const project = await prisma.project.create({
-      data: {
-        user_id: userId,
-        name: data.name,
-        status: data.status,
-        client_id: data.client_id,
-        description: data.description,
-        budget: data.budget,
-        hourly_rate: data.hourly_rate,
-        start_date: data.start_date ? new Date(data.start_date) : undefined,
-        deadline: data.deadline ? new Date(data.deadline) : undefined,
-        color: data.color,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const project = await tx.project.create({
+        data: {
+          user_id: userId,
+          name: data.name,
+          status: data.status,
+          client_id: data.client_id,
+          description: data.description,
+          budget: data.budget,
+          hourly_rate: data.hourly_rate,
+          start_date: data.start_date ? new Date(data.start_date) : undefined,
+          deadline: data.deadline ? new Date(data.deadline) : undefined,
+          color: data.color,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "create",
+          entity_type: "project",
+          entity_id: project.id,
+          new_values: project,
+        },
+      });
+      return project;
     });
-    return project;
   }
 
   static async addAttachment(data: AddAttachmentInput) {
@@ -302,26 +313,37 @@ export class ProjectService {
       throw new AppError("Project not found", 404);
     }
 
-    const project = await prisma.project.update({
-      where: {
-        id: projectId,
-        user_id: userId,
-        deleted_at: null,
-      },
-      data: {
-        name: data.name,
-        status: data.status,
-        client_id: data.client_id,
-        description: data.description,
-        budget: data.budget,
-        hourly_rate: data.hourly_rate,
-        start_date: data.start_date ? new Date(data.start_date) : undefined,
-        deadline: data.deadline ? new Date(data.deadline) : undefined,
-        color: data.color,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const project = await tx.project.update({
+        where: {
+          id: projectId,
+          user_id: userId,
+          deleted_at: null,
+        },
+        data: {
+          name: data.name,
+          status: data.status,
+          client_id: data.client_id,
+          description: data.description,
+          budget: data.budget,
+          hourly_rate: data.hourly_rate,
+          start_date: data.start_date ? new Date(data.start_date) : undefined,
+          deadline: data.deadline ? new Date(data.deadline) : undefined,
+          color: data.color,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "update",
+          entity_type: "project",
+          entity_id: project.id,
+          old_values: existingProject,
+          new_values: project,
+        },
+      });
+      return project;
     });
-
-    return project;
   }
 
   static async deleteProject(userId: string, projectId: string) {
@@ -337,17 +359,27 @@ export class ProjectService {
       throw new AppError("Project not found", 404);
     }
 
-    const project = await prisma.project.update({
-      where: {
-        id: projectId,
-        user_id: userId,
-        deleted_at: null,
-      },
-      data: {
-        deleted_at: new Date(),
-      },
+    return await prisma.$transaction(async (tx) => {
+      const project = await tx.project.update({
+        where: {
+          id: projectId,
+          user_id: userId,
+          deleted_at: null,
+        },
+        data: {
+          deleted_at: new Date(),
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          user_id: userId,
+          action: "delete",
+          entity_type: "project",
+          entity_id: project.id,
+          old_values: existingProject,
+        },
+      });
+      return project;
     });
-
-    return project;
   }
 }

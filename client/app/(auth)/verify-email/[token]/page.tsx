@@ -1,12 +1,12 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useVerifyEmail } from "@/lib/hooks/useAuth";
 import { ArrowRight, Loader2, MailCheck, MailX } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 
 type Status = "loading" | "success" | "error";
 
@@ -24,13 +24,13 @@ function Layout({ children }: { children: React.ReactNode }) {
         <Link href="/" className="relative flex items-center gap-3 w-fit">
           <Image
             src="/logo-wo-text.png"
-            alt="Timelyne"
+            alt="Flowbill"
             width={32}
             height={32}
             className="rounded"
           />
           <span className="text-white font-semibold text-lg tracking-tight">
-            Timelyne
+            Flowbill
           </span>
         </Link>
 
@@ -42,16 +42,16 @@ function Layout({ children }: { children: React.ReactNode }) {
             Confirming your email address
           </h1>
           <p className="text-violet-200/70 text-base leading-relaxed">
-            Email verification keeps your account secure and ensures you
-            receive important updates about your invoices and projects.
+            Email verification keeps your account secure and ensures you receive
+            important updates about your invoices and projects.
           </p>
         </div>
 
         <div className="relative rounded-2xl bg-white/5 border border-white/10 p-5">
           <p className="text-violet-100/70 text-sm leading-relaxed">
-            <span className="font-semibold text-white">Almost done.</span>{" "}
-            Once verified, you&apos;ll have full access to time tracking,
-            invoicing, and everything Timelyne has to offer.
+            <span className="font-semibold text-white">Almost done.</span> Once
+            verified, you&apos;ll have full access to time tracking, invoicing,
+            and everything Flowbill has to offer.
           </p>
         </div>
       </div>
@@ -65,12 +65,12 @@ function Layout({ children }: { children: React.ReactNode }) {
         <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
           <Image
             src="/logo-wo-text.png"
-            alt="Timelyne"
+            alt="Flowbill"
             width={28}
             height={28}
             className="rounded dark:brightness-200"
           />
-          <span className="font-semibold text-lg tracking-tight">Timelyne</span>
+          <span className="font-semibold text-lg tracking-tight">Flowbill</span>
         </Link>
 
         <div className="w-full max-w-sm">{children}</div>
@@ -92,7 +92,7 @@ export default function VerifyEmailPage() {
         onError: () => setStatus("error"),
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   /* ── Loading ─────────────────────────────────────────────── */
@@ -151,8 +151,8 @@ export default function VerifyEmailPage() {
               Email verified!
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Your email address has been confirmed. You now have full access
-              to your Timelyne account.
+              Your email address has been confirmed. You now have full access to
+              your Flowbill account.
             </p>
           </div>
 
@@ -215,8 +215,8 @@ export default function VerifyEmailPage() {
             <Link href="/login">Sign in to resend link</Link>
           </Button>
           <p className="text-xs text-muted-foreground">
-            After signing in, you can request a new verification email from
-            your account settings.
+            After signing in, you can request a new verification email from your
+            account settings.
           </p>
         </div>
       </div>
