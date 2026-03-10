@@ -228,7 +228,7 @@ export default function InvoicesPage() {
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            [
+            {[
               {
                 label: "Total",
                 value: stats.total_invoiced,
