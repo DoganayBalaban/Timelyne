@@ -1,5 +1,6 @@
 import { Job, Worker } from "bullmq";
 import { getIO } from "../config/socket";
+import { emailQueue } from "../queues/emailQueue";
 import { bullMqConnection } from "../queues/pdfQueue";
 import logger from "../utils/logger";
 import { buildInvoicePdf } from "../utils/pdfBuilder";
@@ -8,6 +9,8 @@ import { uploadPdfToS3 } from "../utils/storageUpload";
 
 interface PdfJobData {
   invoiceId: string;
+  /** When true, automatically enqueue an email job after the PDF is generated. */
+  sendAfterPdf?: boolean;
 }
 
 const processPdfJob = async (job: Job<PdfJobData>) => {
@@ -107,6 +110,20 @@ pdfWorker.on("completed", async (job) => {
     }
   } catch (err) {
     logger.error("[pdfWorker] Failed to emit pdf-ready event", err);
+  }
+
+  // If the PDF was triggered as part of a "send invoice" flow, auto-queue the email
+  if (job.data.sendAfterPdf) {
+    try {
+      await emailQueue.add("send-invoice-email", {
+        invoiceId: job.data.invoiceId,
+      });
+      logger.info(
+        `[pdfWorker] Auto-queued email for invoice ${job.data.invoiceId}`,
+      );
+    } catch (err) {
+      logger.error("[pdfWorker] Failed to auto-queue email", err);
+    }
   }
 });
 
