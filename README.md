@@ -126,6 +126,12 @@ Timelyne is an **all-in-one SaaS platform** designed for freelancers and small a
 
 <img src="client/public/readme/ss-timers.png" alt="Timers" width="100%">
 
+---
+
+### 💸 Expenses
+
+<img src="client/public/readme/ss-expenses.png" alt="Expenses" width="100%">
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Built With
@@ -280,6 +286,14 @@ No clutter. No unnecessary features. Just what you need.
 - Kanban-style task management with drag & drop
 - File storage per project (AWS S3)
 
+### 💸 Expense Tracking
+
+- Log business expenses by category (software, hardware, travel, etc.)
+- Upload receipts (images or PDFs) stored on AWS S3
+- Tax-deductible flag per expense
+- Net profit calculation: paid invoices revenue minus total expenses
+- Category breakdown for financial clarity
+
 ### 📊 Financial Dashboard
 
 - Real-time stats cards (revenue, clients, projects, invoices)
@@ -359,6 +373,7 @@ timelyne/
 - [x] Financial dashboard
 - [x] Real-time notifications
 - [x] Docker deployment with health checks
+- [x] Expense tracking with receipt uploads & net profit stats
 - [x] Email notifications & reminders (Resend)
 - [x] REST API documentation (Swagger / OpenAPI 3.0)
 - [ ] Team support for small agencies
