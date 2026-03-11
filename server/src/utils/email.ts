@@ -11,7 +11,7 @@ export const sendEmail = async(options:{
 })=>{
     try {
         const data = await resend.emails.send({
-            from: "Timelyne <onboarding@timelyne.com>",
+            from: "Timelyne <onboarding@resend.dev>",
             to: options.to,
             subject: options.subject,
             html: options.html,
