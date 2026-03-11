@@ -28,6 +28,8 @@ import {
   useClientStats,
   useClientTimeEntries,
 } from "@/lib/hooks/useClients";
+import { clientPortalApi } from "@/lib/api/portal";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Banknote,
@@ -35,10 +37,13 @@ import {
   Clock,
   FileText,
   FolderOpen,
+  Globe,
+  Loader2,
   Mail,
   MapPin,
   Pencil,
   Phone,
+  Send,
   StickyNote,
   Timer,
   TrendingUp,
@@ -241,7 +246,7 @@ export default function ClientDetailPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="projects">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="projects" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4" />
               Projects
@@ -265,6 +270,10 @@ export default function ClientDetailPage() {
               <Banknote className="h-4 w-4" />
               Revenue
             </TabsTrigger>
+            <TabsTrigger value="portal" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Portal
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="projects" className="mt-4">
@@ -281,6 +290,9 @@ export default function ClientDetailPage() {
           </TabsContent>
           <TabsContent value="revenue" className="mt-4">
             <RevenueTab clientId={clientId} />
+          </TabsContent>
+          <TabsContent value="portal" className="mt-4">
+            <PortalTab clientId={clientId} client={client} />
           </TabsContent>
         </Tabs>
       </div>
@@ -688,6 +700,169 @@ function StatsTab({ clientId }: { clientId: string }) {
         />
       </div>
     </div>
+  );
+}
+
+function PortalTab({
+  clientId,
+  client,
+}: {
+  clientId: string;
+  client: {
+    id: string;
+    email?: string | null;
+    portal_enabled?: boolean;
+    [key: string]: any;
+  };
+}) {
+  const queryClient = useQueryClient();
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const enableMutation = useMutation({
+    mutationFn: () => clientPortalApi.enablePortal(clientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients", clientId] });
+      setSuccessMsg("Portal enabled successfully.");
+      setErrorMsg(null);
+    },
+    onError: () => {
+      setErrorMsg("Failed to enable portal. Please try again.");
+      setSuccessMsg(null);
+    },
+  });
+
+  const disableMutation = useMutation({
+    mutationFn: () => clientPortalApi.disablePortal(clientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients", clientId] });
+      setSuccessMsg("Portal disabled. All active sessions have been revoked.");
+      setErrorMsg(null);
+    },
+    onError: () => {
+      setErrorMsg("Failed to disable portal. Please try again.");
+      setSuccessMsg(null);
+    },
+  });
+
+  const sendLinkMutation = useMutation({
+    mutationFn: () => clientPortalApi.sendMagicLink(clientId),
+    onSuccess: () => {
+      setSuccessMsg("Magic link sent to client's email.");
+      setErrorMsg(null);
+    },
+    onError: () => {
+      setErrorMsg("Failed to send magic link. Please try again.");
+      setSuccessMsg(null);
+    },
+  });
+
+  const isPortalEnabled = client?.portal_enabled ?? false;
+  const hasEmail = !!client?.email;
+  const isBusy =
+    enableMutation.isPending ||
+    disableMutation.isPending ||
+    sendLinkMutation.isPending;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Globe className="h-5 w-5" />
+          Client Portal
+        </CardTitle>
+        <CardDescription>
+          Give your client read-only access to their invoices via a secure
+          magic-link portal — no account required.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Status */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">Status:</span>
+          {isPortalEnabled ? (
+            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400">
+              Active
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-muted-foreground">
+              Disabled
+            </Badge>
+          )}
+        </div>
+
+        {/* Feedback messages */}
+        {successMsg && (
+          <p className="text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-md px-4 py-3">
+            {successMsg}
+          </p>
+        )}
+        {errorMsg && (
+          <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md px-4 py-3">
+            {errorMsg}
+          </p>
+        )}
+
+        {/* Actions */}
+        {!isPortalEnabled ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Enable the portal to allow this client to view their invoices. You
+              can disable it at any time to immediately revoke access.
+            </p>
+            <Button
+              onClick={() => enableMutation.mutate()}
+              disabled={isBusy}
+            >
+              {enableMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Enable Portal
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              The portal is active. Send your client a magic link to let them
+              sign in and view their invoices. Each link is valid for{" "}
+              <strong>15 minutes</strong> and can only be used once.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => sendLinkMutation.mutate()}
+                disabled={isBusy || !hasEmail}
+              >
+                {sendLinkMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                Send Magic Link
+              </Button>
+
+              <Button
+                variant="destructive"
+                onClick={() => disableMutation.mutate()}
+                disabled={isBusy}
+              >
+                {disableMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Disable Portal
+              </Button>
+            </div>
+
+            {!hasEmail && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                This client has no email address on file. Add an email address
+                before sending a magic link.
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
