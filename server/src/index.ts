@@ -17,6 +17,7 @@ import clientRoute from "./routes/clientRoute";
 import dashboardRoute from "./routes/dashboardRoute";
 import healthRoute from "./routes/healthRoute";
 import invoiceRoute from "./routes/invoiceRoute";
+import portalRoute from "./routes/portalRoute";
 import projectRoute from "./routes/projectRoute";
 import timerRoute from "./routes/timerRoute";
 import logger from "./utils/logger";
@@ -61,6 +62,7 @@ app.use("/api/invoices", invoiceRoute);
 app.use("/api/dashboard", dashboardRoute);
 app.use("/api/tasks", taskRoute);
 app.use("/api/expenses", expenseRoute);
+app.use("/api/portal", portalRoute);
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();
