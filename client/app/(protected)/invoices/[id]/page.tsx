@@ -25,7 +25,6 @@ import {
   useGeneratePdf,
   useInvoice,
   useSendInvoiceEmail,
-  useUpdateInvoice,
 } from "@/lib/hooks/useInvoices";
 import {
   ArrowLeft,
@@ -113,7 +112,6 @@ export default function InvoiceDetailPage() {
   const generatePdf = useGeneratePdf();
   const downloadPdf = useDownloadPdf();
   const sendEmail = useSendInvoiceEmail();
-  const updateInvoice = useUpdateInvoice();
 
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
@@ -170,9 +168,16 @@ export default function InvoiceDetailPage() {
   };
 
   const handleSendEmail = () => {
+    const isDraft = invoice?.status === "draft";
     sendEmail.mutate(invoiceId, {
-      onSuccess: () => toast.success("Sending email..."),
-      onError: () => toast.error("Failed to send email"),
+      onSuccess: () =>
+        toast.info(
+          isDraft
+            ? "Invoice is being prepared and will be sent to the client shortly."
+            : "Email queued — the client will receive it shortly.",
+        ),
+      onError: (err: any) =>
+        toast.error(err?.response?.data?.message ?? "Failed to send invoice"),
     });
   };
 
@@ -198,88 +203,84 @@ export default function InvoiceDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Draft → Sent transition */}
+          {/* Draft → send in one click (PDF + email chained automatically) */}
           {invoice.status === "draft" && (
             <Button
               size="sm"
-              onClick={() =>
-                updateInvoice.mutate(
-                  { id: invoiceId, data: { status: "sent" } },
-                  {
-                    onSuccess: () =>
-                      toast.success("Invoice marked as sent"),
-                    onError: () => toast.error("Failed to update status"),
-                  },
-                )
-              }
-              disabled={updateInvoice.isPending}
+              onClick={handleSendEmail}
+              disabled={sendEmail.isPending}
             >
-              {updateInvoice.isPending ? (
+              {sendEmail.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Send className="mr-2 h-4 w-4" />
               )}
-              Mark as Sent
+              Send Invoice
             </Button>
           )}
-          {invoice.pdf_status !== "generated" && invoice.status !== "draft" && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGeneratePdf}
-              disabled={
-                generatePdf.isPending || invoice.pdf_status === "processing"
-              }
-            >
-              {generatePdf.isPending || invoice.pdf_status === "processing" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="mr-2 h-4 w-4" />
-              )}
-              Generate PDF
-            </Button>
-          )}
-          {invoice.pdf_status === "generated" && (
+          {/* Already sent / overdue — show PDF controls + resend */}
+          {invoice.status !== "draft" && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadPdf}
-                disabled={downloadPdf.isPending}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  generatePdf.mutate(
-                    { id: invoiceId, force: true },
-                    {
-                      onSuccess: () =>
-                        toast.info("Regenerating PDF..."),
-                    },
-                  )
-                }
-                disabled={generatePdf.isPending}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Regenerate
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSendEmail}
-                disabled={sendEmail.isPending}
-              >
-                {sendEmail.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Mail className="mr-2 h-4 w-4" />
-                )}
-                Send Email
-              </Button>
+              {invoice.pdf_status === "generated" ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadPdf}
+                    disabled={downloadPdf.isPending}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      generatePdf.mutate(
+                        { id: invoiceId, force: true },
+                        { onSuccess: () => toast.info("Regenerating PDF...") },
+                      )
+                    }
+                    disabled={generatePdf.isPending}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Regenerate
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGeneratePdf}
+                  disabled={
+                    generatePdf.isPending ||
+                    invoice.pdf_status === "processing"
+                  }
+                >
+                  {generatePdf.isPending ||
+                  invoice.pdf_status === "processing" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="mr-2 h-4 w-4" />
+                  )}
+                  Generate PDF
+                </Button>
+              )}
+              {invoice.status !== "cancelled" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSendEmail}
+                  disabled={sendEmail.isPending}
+                >
+                  {sendEmail.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mail className="mr-2 h-4 w-4" />
+                  )}
+                  Resend Email
+                </Button>
+              )}
             </>
           )}
           {invoice.status !== "paid" &&
