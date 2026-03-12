@@ -1,5 +1,8 @@
 import express, { Router } from "express";
-import { handleInvoicePaymentWebhook } from "../controllers/webhookController";
+import {
+  handleInvoicePaymentWebhook,
+  handleSubscriptionWebhook,
+} from "../controllers/webhookController";
 
 const router = Router();
 
@@ -12,6 +15,12 @@ router.post(
   "/stripe/invoices",
   express.raw({ type: "application/json" }),
   handleInvoicePaymentWebhook,
+);
+
+router.post(
+  "/stripe/subscriptions",
+  express.raw({ type: "application/json" }),
+  handleSubscriptionWebhook,
 );
 
 export default router;
