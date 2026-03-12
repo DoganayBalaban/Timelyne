@@ -342,6 +342,181 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Pricing ──────────────────────────────────────────── */}
+      <section id="pricing" className="py-28 bg-muted/30">
+        <div className="container mx-auto max-w-6xl px-4">
+          <div className="text-center mb-16">
+            <Badge variant="outline" className="mb-4 rounded-full">
+              Pricing
+            </Badge>
+            <h2 className="text-4xl font-bold tracking-tight mb-4">
+              Simple, transparent pricing
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+              Start free. Upgrade when you&apos;re ready. No hidden fees, no
+              surprises.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+            {/* Free */}
+            <Card className="flex flex-col">
+              <CardContent className="pt-6 flex flex-col flex-1">
+                <div className="mb-4">
+                  <p className="font-semibold text-base mb-1">Free</p>
+                  <div className="flex items-end gap-1">
+                    <span className="text-4xl font-bold">$0</span>
+                    <span className="text-muted-foreground text-sm pb-1">
+                      /month
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-2">
+                    Perfect for getting started.
+                  </p>
+                </div>
+                <Separator className="mb-4" />
+                <ul className="space-y-2.5 flex-1 mb-6">
+                  {[
+                    "3 active clients",
+                    "10 invoices/month",
+                    "Time tracking",
+                    "Client portal",
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/register">Get started free</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Starter */}
+            <Card className="flex flex-col">
+              <CardContent className="pt-6 flex flex-col flex-1">
+                <div className="mb-4">
+                  <p className="font-semibold text-base mb-1">Starter</p>
+                  <div className="flex items-end gap-1">
+                    <span className="text-4xl font-bold">$9</span>
+                    <span className="text-muted-foreground text-sm pb-1">
+                      /month
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-2">
+                    For solo freelancers.
+                  </p>
+                </div>
+                <Separator className="mb-4" />
+                <ul className="space-y-2.5 flex-1 mb-6">
+                  {[
+                    "10 active clients",
+                    "Unlimited invoices",
+                    "Time tracking",
+                    "PDF generation",
+                    "Client portal",
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/register">Get started</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Pro — highlighted */}
+            <Card className="flex flex-col border-violet-500 ring-1 ring-violet-500 relative">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <Badge className="bg-violet-600 text-white text-xs px-3 rounded-full shadow">
+                  Most Popular
+                </Badge>
+              </div>
+              <CardContent className="pt-6 flex flex-col flex-1">
+                <div className="mb-4">
+                  <p className="font-semibold text-base mb-1">Pro</p>
+                  <div className="flex items-end gap-1">
+                    <span className="text-4xl font-bold">$19</span>
+                    <span className="text-muted-foreground text-sm pb-1">
+                      /month
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-2">
+                    For established freelancers.
+                  </p>
+                </div>
+                <Separator className="mb-4" />
+                <ul className="space-y-2.5 flex-1 mb-6">
+                  {[
+                    "Unlimited clients",
+                    "Unlimited invoices",
+                    "Time tracking",
+                    "PDF generation",
+                    "Client portal",
+                    "Expense tracking",
+                    "Advanced reports",
+                    "Priority support",
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  asChild
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20"
+                >
+                  <Link href="/register">Get started</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Agency */}
+            <Card className="flex flex-col">
+              <CardContent className="pt-6 flex flex-col flex-1">
+                <div className="mb-4">
+                  <p className="font-semibold text-base mb-1">Agency</p>
+                  <div className="flex items-end gap-1">
+                    <span className="text-4xl font-bold">$49</span>
+                    <span className="text-muted-foreground text-sm pb-1">
+                      /month
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-2">
+                    Built for teams &amp; agencies.
+                  </p>
+                </div>
+                <Separator className="mb-4" />
+                <ul className="space-y-2.5 flex-1 mb-6">
+                  {[
+                    "Everything in Pro",
+                    "Team members",
+                    "Role-based access",
+                    "Client branding",
+                    "API access",
+                    "Dedicated support",
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/register">Get started</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* ── Stats banner ─────────────────────────────────────── */}
       <section className="py-20 bg-gradient-to-r from-violet-600 to-indigo-600">
         <div className="container mx-auto max-w-5xl px-4">
@@ -432,6 +607,12 @@ export default function Home() {
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 How it works
+              </a>
+              <a
+                href="#pricing"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Pricing
               </a>
               <Link
                 href="/login"
