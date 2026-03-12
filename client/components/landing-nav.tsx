@@ -50,6 +50,12 @@ export default function LandingNav() {
           >
             How it works
           </a>
+          <a
+            href="#pricing"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Pricing
+          </a>
         </div>
 
         {/* Desktop CTA */}
@@ -96,6 +102,13 @@ export default function LandingNav() {
             className="text-sm text-muted-foreground hover:text-foreground"
           >
             How it works
+          </a>
+          <a
+            href="#pricing"
+            onClick={() => setMobileOpen(false)}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Pricing
           </a>
           <div className="flex flex-col gap-2 pt-3 border-t">
             <Button asChild variant="outline" size="sm">

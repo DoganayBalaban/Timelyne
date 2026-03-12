@@ -1,4 +1,8 @@
+import Stripe from "stripe";
+import { env } from "../config/env";
 import { redis } from "../config/redis";
+import { getIO } from "../config/socket";
+import { stripe } from "../config/stripe";
 import { emailQueue } from "../queues/emailQueue";
 import { pdfQueue } from "../queues/pdfQueue";
 import { AppError } from "../utils/appError";
@@ -248,7 +252,7 @@ export class InvoiceService {
       },
     });
     if (!invoice) {
-      throw new AppError("Fatura bulunamadı", 404);
+      throw new AppError("Invoice not found", 404);
     }
     return invoice;
   }
@@ -668,5 +672,166 @@ export class InvoiceService {
         isolationLevel: "Serializable",
       },
     );
+  }
+
+  /**
+   * Creates (or returns cached) a Stripe Checkout Session URL for the client
+   * to pay the invoice online.
+   */
+  static async createStripePaymentLink(
+    userId: string,
+    invoiceId: string,
+  ): Promise<{ url: string }> {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, user_id: userId, deleted_at: null },
+      include: { client: true },
+    });
+
+    if (!invoice) {
+      throw new AppError("Invoice not found", 404);
+    }
+
+    if (invoice.status === "draft") {
+      throw new AppError(
+        "Send the invoice before creating a payment link",
+        400,
+      );
+    }
+
+    if (invoice.status === "paid" || invoice.status === "cancelled") {
+      throw new AppError(
+        `Cannot create payment link for a ${invoice.status} invoice`,
+        400,
+      );
+    }
+
+    // Return existing URL if already generated
+    if (invoice.stripe_payment_link_url && invoice.stripe_payment_link_id) {
+      return { url: invoice.stripe_payment_link_url };
+    }
+
+    const amountInCents = Math.round(Number(invoice.total) * 100);
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      customer_email: invoice.client.email ?? undefined,
+      line_items: [
+        {
+          price_data: {
+            currency: invoice.currency.toLowerCase(),
+            unit_amount: amountInCents,
+            product_data: {
+              name: `Invoice ${invoice.invoice_number}`,
+              ...(invoice.notes ? { description: invoice.notes } : {}),
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${env.FRONTEND_URL}/invoices/${invoice.id}?payment=success`,
+      cancel_url: `${env.FRONTEND_URL}/invoices/${invoice.id}`,
+      metadata: {
+        invoiceId: invoice.id,
+        userId,
+      },
+    });
+
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        stripe_payment_link_id: session.id,
+        stripe_payment_link_url: session.url,
+      },
+    });
+
+    return { url: session.url! };
+  }
+
+  /**
+   * Called from the Stripe webhook when a checkout.session.completed event fires.
+   * Idempotent — skips if invoice is already paid.
+   */
+  static async handleStripeInvoicePaid(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    const { invoiceId, userId } = session.metadata ?? {};
+    if (!invoiceId || !userId) return;
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, deleted_at: null },
+      include: { payments: true, client: true },
+    });
+
+    if (!invoice || invoice.status === "paid") return;
+
+    const amountPaid = (session.amount_total ?? 0) / 100;
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : undefined;
+
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.payment.create({
+          data: {
+            invoice_id: invoiceId,
+            amount: amountPaid,
+            payment_method: "stripe",
+            reference_number: paymentIntentId,
+            paid_at: new Date(),
+            notes: "Paid via Stripe",
+            stripe_payment_intent_id: paymentIntentId,
+          },
+        });
+
+        await tx.invoice.update({
+          where: { id: invoiceId },
+          data: {
+            status: "paid",
+            paid_at: new Date(),
+            stripe_payment_intent_id: paymentIntentId,
+          },
+        });
+
+        await tx.client.update({
+          where: { id: invoice.client_id },
+          data: { total_paid: { increment: amountPaid } },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            user_id: userId,
+            action: "update",
+            entity_type: "invoice",
+            entity_id: invoiceId,
+            old_values: { status: invoice.status },
+            new_values: { status: "paid", paid_via: "stripe", amountPaid },
+          },
+        });
+      },
+      { isolationLevel: "Serializable" },
+    );
+
+    await redis.del(`dashboard:stats:${userId}`);
+    await redis.del(`dashboard:revenue:${userId}`);
+
+    // Real-time notification to the freelancer
+    try {
+      getIO().to(`user:${userId}`).emit("invoice:paid", {
+        invoiceId,
+        amount: amountPaid,
+        invoice_number: invoice.invoice_number,
+      });
+    } catch {
+      // Socket not critical — ignore if not initialized
+    }
+
+    // Email notification to the freelancer
+    await emailQueue.add("payment-received-notification", {
+      invoiceId,
+      userId,
+      amount: amountPaid,
+    });
   }
 }

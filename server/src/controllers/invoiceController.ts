@@ -162,3 +162,19 @@ export const markInvoiceAsPaid = catchAsync(
     });
   },
 );
+
+export const createPaymentLink = catchAsync(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userId = req.user!.id;
+    const invoiceId = req.params.id as string;
+    const result = await InvoiceService.createStripePaymentLink(
+      userId,
+      invoiceId,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  },
+);

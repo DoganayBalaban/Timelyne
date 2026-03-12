@@ -20,6 +20,8 @@ import invoiceRoute from "./routes/invoiceRoute";
 import portalRoute from "./routes/portalRoute";
 import projectRoute from "./routes/projectRoute";
 import timerRoute from "./routes/timerRoute";
+import subscriptionRoute from "./routes/subscriptionRoute";
+import webhookRoute from "./routes/webhookRoute";
 import logger from "./utils/logger";
 // Register BullMQ workers — must be imported so workers start listening
 import "./workers/emailWorker";
@@ -39,6 +41,10 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+// IMPORTANT: Webhook routes must be mounted BEFORE express.json()
+// Stripe signature verification requires the raw unparsed request body.
+app.use("/api/webhooks", webhookRoute);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -63,6 +69,7 @@ app.use("/api/dashboard", dashboardRoute);
 app.use("/api/tasks", taskRoute);
 app.use("/api/expenses", expenseRoute);
 app.use("/api/portal", portalRoute);
+app.use("/api/subscriptions", subscriptionRoute);
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();
