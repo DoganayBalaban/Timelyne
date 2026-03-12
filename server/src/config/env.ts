@@ -18,4 +18,10 @@ export const env = {
   AWS_REGION: process.env.AWS_REGION || "",
   AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME || "",
   CLOUDFRONT_URL: process.env.CLOUDFRONT_URL || "",
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
+  STRIPE_INVOICE_WEBHOOK_SECRET: process.env.STRIPE_INVOICE_WEBHOOK_SECRET || "",
+  STRIPE_PRICE_STARTER: process.env.STRIPE_PRICE_STARTER || "",
+  STRIPE_PRICE_PRO: process.env.STRIPE_PRICE_PRO || "",
+  STRIPE_PRICE_AGENCY: process.env.STRIPE_PRICE_AGENCY || "",
 };
