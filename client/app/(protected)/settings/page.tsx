@@ -550,17 +550,25 @@ export default function SettingsPage() {
                       : "No expiry date"}
                   </p>
                 </div>
-                <Badge
-                  className={
-                    user?.plan === "free"
-                      ? "bg-muted text-muted-foreground"
-                      : user?.plan === "pro"
-                      ? "bg-violet-600 text-white"
-                      : "bg-amber-500 text-white"
-                  }
-                >
-                  {user?.plan?.toUpperCase() ?? "FREE"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={
+                      user?.plan === "free"
+                        ? "bg-muted text-muted-foreground"
+                        : user?.plan === "pro"
+                        ? "bg-violet-600 text-white"
+                        : "bg-amber-500 text-white"
+                    }
+                  >
+                    {user?.plan?.toUpperCase() ?? "FREE"}
+                  </Badge>
+                  <Link
+                    href="/settings/billing"
+                    className="text-xs text-primary underline-offset-4 hover:underline"
+                  >
+                    Manage
+                  </Link>
+                </div>
               </div>
 
               <Separator />
