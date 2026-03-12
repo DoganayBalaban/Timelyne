@@ -20,6 +20,7 @@ import invoiceRoute from "./routes/invoiceRoute";
 import portalRoute from "./routes/portalRoute";
 import projectRoute from "./routes/projectRoute";
 import timerRoute from "./routes/timerRoute";
+import subscriptionRoute from "./routes/subscriptionRoute";
 import webhookRoute from "./routes/webhookRoute";
 import logger from "./utils/logger";
 // Register BullMQ workers — must be imported so workers start listening
@@ -68,6 +69,7 @@ app.use("/api/dashboard", dashboardRoute);
 app.use("/api/tasks", taskRoute);
 app.use("/api/expenses", expenseRoute);
 app.use("/api/portal", portalRoute);
+app.use("/api/subscriptions", subscriptionRoute);
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();
