@@ -1,4 +1,5 @@
 import { Job, Worker } from "bullmq";
+import { Sentry } from "../config/sentry";
 import { bullMqConnection } from "../queues/pdfQueue";
 import { sendEmail } from "../utils/email";
 import {
@@ -205,6 +206,7 @@ emailWorker.on("completed", (job) => {
 
 emailWorker.on("failed", (job, err) => {
   logger.error(`[emailWorker] Job ${job?.id} failed: ${err.message}`);
+  Sentry.captureException(err, { extra: { jobId: job?.id, jobName: job?.name } });
 });
 
 export default emailWorker;

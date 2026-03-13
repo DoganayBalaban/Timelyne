@@ -1,4 +1,5 @@
 import { Job, Worker } from "bullmq";
+import { Sentry } from "../config/sentry";
 import { redis } from "../config/redis";
 import { emailQueue } from "../queues/emailQueue";
 import { bullMqConnection } from "../queues/pdfQueue";
@@ -105,6 +106,7 @@ overdueWorker.on("completed", (job) => {
 
 overdueWorker.on("failed", (job, err) => {
   logger.error(`[overdueWorker] Job ${job?.id} failed: ${err.message}`);
+  Sentry.captureException(err, { extra: { jobId: job?.id } });
 });
 
 export default overdueWorker;

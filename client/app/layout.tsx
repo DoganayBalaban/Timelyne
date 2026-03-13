@@ -1,3 +1,4 @@
+import { SentryInit } from "@/components/sentry-init";
 import { Providers } from "@/providers";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -22,6 +23,7 @@ export default function RootLayout({
   return (
     <html lang="tr">
       <body className={`${inter.variable} antialiased`}>
+        <SentryInit />
         <Providers>{children}</Providers>
         <Toaster richColors position="top-right" />
       </body>
