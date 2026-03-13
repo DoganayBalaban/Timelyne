@@ -24,4 +24,5 @@ export const env = {
   STRIPE_PRICE_STARTER: process.env.STRIPE_PRICE_STARTER || "",
   STRIPE_PRICE_PRO: process.env.STRIPE_PRICE_PRO || "",
   STRIPE_PRICE_AGENCY: process.env.STRIPE_PRICE_AGENCY || "",
+  SENTRY_DSN: process.env.SENTRY_DSN || "",
 };

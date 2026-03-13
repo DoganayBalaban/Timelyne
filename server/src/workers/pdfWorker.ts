@@ -1,4 +1,5 @@
 import { Job, Worker } from "bullmq";
+import { Sentry } from "../config/sentry";
 import { getIO } from "../config/socket";
 import { emailQueue } from "../queues/emailQueue";
 import { bullMqConnection } from "../queues/pdfQueue";
@@ -129,6 +130,7 @@ pdfWorker.on("completed", async (job) => {
 
 pdfWorker.on("failed", async (job, err) => {
   logger.error(`[pdfWorker] Job ${job?.id} failed: ${err.message}`);
+  Sentry.captureException(err, { extra: { jobId: job?.id, invoiceId: job?.data.invoiceId } });
 
   // After all retries exhausted, mark the invoice as failed so the client
   // can surface a meaningful error rather than showing "processing" forever.

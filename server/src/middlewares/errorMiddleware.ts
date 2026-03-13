@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError, ZodIssue } from "zod";
+import { Sentry } from "../config/sentry";
 import { env } from "../config/env";
 import logger from "../utils/logger";
 
@@ -28,8 +29,10 @@ export const globalErrorHandler = (
   }
 
   // 2. Loglama
+  let sentryEventId: string | undefined;
   if (statusCode >= 500) {
     logger.error("💥 Server Error:", err);
+    sentryEventId = Sentry.captureException(err);
   }
 
   // 3. Standart Response Formatı
@@ -37,6 +40,7 @@ export const globalErrorHandler = (
     status: "error",
     message,
     ...(errors && { errors }), // Sadece validation hatası varsa bu alanı ekle
+    ...(sentryEventId && { sentry_event_id: sentryEventId }),
     ...(env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };

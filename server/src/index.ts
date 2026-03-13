@@ -1,3 +1,6 @@
+import { initSentry, Sentry } from "./config/sentry";
+initSentry();
+
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -72,6 +75,9 @@ app.use("/api/tasks", taskRoute);
 app.use("/api/expenses", expenseRoute);
 app.use("/api/portal", portalRoute);
 app.use("/api/subscriptions", subscriptionRoute);
+
+// Sentry error handler — must be before globalErrorHandler
+Sentry.setupExpressErrorHandler(app);
 app.use(globalErrorHandler);
 async function startServer() {
   await connectDatabase();
