@@ -35,9 +35,8 @@ export function useSocket(userId: string | undefined) {
 
     // PDF generation completed
     socket.on("invoice:pdf-ready", (payload: { invoiceId: string }) => {
-      toast.success("PDF Hazır!", {
-        description:
-          "Faturanızın PDF'i başarıyla oluşturuldu. İndirebilirsiniz.",
+      toast.success("PDF Ready!", {
+        description: "Your invoice PDF has been generated successfully. You can download it now.",
       });
       queryClient.invalidateQueries({
         queryKey: ["invoices", payload.invoiceId],
@@ -47,9 +46,8 @@ export function useSocket(userId: string | undefined) {
 
     // PDF generation failed
     socket.on("invoice:pdf-failed", (payload: { invoiceId: string }) => {
-      toast.error("PDF Oluşturulamadı", {
-        description:
-          "Fatura PDF'i oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.",
+      toast.error("PDF Generation Failed", {
+        description: "An error occurred while generating the invoice PDF. Please try again.",
       });
       queryClient.invalidateQueries({
         queryKey: ["invoices", payload.invoiceId],

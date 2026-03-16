@@ -33,8 +33,8 @@ import { useEffect, useState } from "react";
 
 // Timezone data
 const timezones = [
-  { value: "Europe/Istanbul", label: "İstanbul (UTC+3)" },
-  { value: "Europe/London", label: "Londra (UTC+0)" },
+  { value: "Europe/Istanbul", label: "Istanbul (UTC+3)" },
+  { value: "Europe/London", label: "London (UTC+0)" },
   { value: "Europe/Paris", label: "Paris (UTC+1)" },
   { value: "Europe/Berlin", label: "Berlin (UTC+1)" },
   { value: "America/New_York", label: "New York (UTC-5)" },
@@ -46,10 +46,10 @@ const timezones = [
 
 // Currency data
 const currencies = [
-  { value: "TRY", label: "₺ Türk Lirası (TRY)" },
-  { value: "USD", label: "$ ABD Doları (USD)" },
+  { value: "TRY", label: "₺ Turkish Lira (TRY)" },
+  { value: "USD", label: "$ US Dollar (USD)" },
   { value: "EUR", label: "€ Euro (EUR)" },
-  { value: "GBP", label: "£ İngiliz Sterlini (GBP)" },
+  { value: "GBP", label: "£ British Pound (GBP)" },
 ];
 
 export default function OnboardingPage() {
@@ -63,7 +63,7 @@ export default function OnboardingPage() {
   // Form state
   const [role, setRole] = useState<"freelancer" | "agency">("freelancer");
   const [timezone, setTimezone] = useState("Europe/Istanbul");
-  const [currency, setCurrency] = useState("TRY");
+  const [currency, setCurrency] = useState("USD");
   const [hourlyRate, setHourlyRate] = useState("");
 
   // Redirect if already completed onboarding
@@ -137,8 +137,8 @@ export default function OnboardingPage() {
       <div className="w-full max-w-2xl mx-auto px-4 pb-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Adım {step} / {totalSteps}</span>
-            <span>{Math.round(progressValue)}% tamamlandı</span>
+            <span>Step {step} of {totalSteps}</span>
+            <span>{Math.round(progressValue)}% complete</span>
           </div>
           <Progress value={progressValue} className="h-2" />
         </div>
@@ -156,17 +156,17 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <CardTitle className="text-2xl md:text-3xl font-bold">
-                    Hoş Geldiniz, {user?.first_name}! 👋
+                    Welcome, {user?.first_name}! 👋
                   </CardTitle>
                   <CardDescription className="text-base mt-2">
-                    Timelyne'ı sizin için özelleştirmemize yardımcı olun
+                    Help us personalize Timelyne for you
                   </CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
                   <Label className="text-base font-medium mb-4 block">
-                    Ne tür işler yapıyorsunuz?
+                    What type of work do you do?
                   </Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button
@@ -191,7 +191,7 @@ export default function OnboardingPage() {
                         <div>
                           <h3 className="font-semibold text-lg">Freelancer</h3>
                           <p className="text-sm text-muted-foreground">
-                            Bağımsız çalışan
+                            Independent professional
                           </p>
                         </div>
                         {role === "freelancer" && (
@@ -220,9 +220,9 @@ export default function OnboardingPage() {
                           <Building2 className="h-6 w-6" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-lg">Ajans</h3>
+                          <h3 className="font-semibold text-lg">Agency</h3>
                           <p className="text-sm text-muted-foreground">
-                            Ekip ile çalışan
+                            Working with a team
                           </p>
                         </div>
                         {role === "agency" && (
@@ -235,7 +235,7 @@ export default function OnboardingPage() {
 
                 <div className="flex justify-end pt-4">
                   <Button onClick={handleNext} size="lg" className="gap-2">
-                    Devam Et
+                    Continue
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -252,20 +252,20 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <CardTitle className="text-2xl md:text-3xl font-bold">
-                    Temel Ayarlar
+                    Basic Settings
                   </CardTitle>
                   <CardDescription className="text-base mt-2">
-                    Zaman dilimi, para birimi ve saatlik ücretinizi ayarlayın
+                    Set your timezone, currency and hourly rate
                   </CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="timezone">Zaman Dilimi</Label>
+                    <Label htmlFor="timezone">Timezone</Label>
                     <Select value={timezone} onValueChange={setTimezone}>
                       <SelectTrigger id="timezone">
-                        <SelectValue placeholder="Zaman dilimi seçin" />
+                        <SelectValue placeholder="Select timezone" />
                       </SelectTrigger>
                       <SelectContent>
                         {timezones.map((tz) => (
@@ -278,10 +278,10 @@ export default function OnboardingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="currency">Para Birimi</Label>
+                    <Label htmlFor="currency">Currency</Label>
                     <Select value={currency} onValueChange={setCurrency}>
                       <SelectTrigger id="currency">
-                        <SelectValue placeholder="Para birimi seçin" />
+                        <SelectValue placeholder="Select currency" />
                       </SelectTrigger>
                       <SelectContent>
                         {currencies.map((c) => (
@@ -296,7 +296,7 @@ export default function OnboardingPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="hourlyRate">
-                    Saatlik Ücret (opsiyonel)
+                    Hourly Rate (optional)
                   </Label>
                   <div className="relative">
                     <Input
@@ -318,7 +318,7 @@ export default function OnboardingPage() {
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Bu, projeler için varsayılan saatlik ücretiniz olacak. Daha sonra değiştirebilirsiniz.
+                    This will be your default hourly rate for projects. You can change it later.
                   </p>
                 </div>
 
@@ -330,7 +330,7 @@ export default function OnboardingPage() {
                     className="gap-2"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Geri
+                    Back
                   </Button>
                   <Button
                     onClick={handleComplete}
@@ -341,11 +341,11 @@ export default function OnboardingPage() {
                     {updateMe.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Tamamlanıyor...
+                        Completing...
                       </>
                     ) : (
                       <>
-                        Tamamla
+                        Complete
                         <Check className="h-4 w-4" />
                       </>
                     )}
@@ -359,7 +359,7 @@ export default function OnboardingPage() {
 
       {/* Footer */}
       <div className="py-4 text-center text-sm text-muted-foreground">
-        <p>© 2026 Timelyne. Tüm hakları saklıdır.</p>
+        <p>© 2026 Timelyne. All rights reserved.</p>
       </div>
     </div>
   );

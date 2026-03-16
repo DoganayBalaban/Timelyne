@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Flowbill - Freelancer Yönetim Sistemi",
-  description: "Freelancer'lar için zaman takibi ve proje yönetimi",
+  title: "Timelyne - Freelancer Management",
+  description: "Time tracking and project management for freelancers",
 };
 
 export default function RootLayout({
@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr">
+    <html lang="en">
       <body className={`${inter.variable} antialiased`}>
         <SentryInit />
         <Providers>{children}</Providers>
