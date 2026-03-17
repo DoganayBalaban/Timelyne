@@ -24,6 +24,13 @@ const processPdfJob = async (job: Job<PdfJobData>) => {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: {
+      user: {
+        select: {
+          first_name: true,
+          last_name: true,
+          email: true,
+        },
+      },
       client: {
         select: {
           name: true,

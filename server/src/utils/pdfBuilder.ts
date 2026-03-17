@@ -11,6 +11,11 @@ interface InvoiceForPdf {
   currency: string;
   notes?: string | null;
   terms?: string | null;
+  user: {
+    first_name?: string | null;
+    last_name?: string | null;
+    email: string;
+  };
   client: {
     name: string;
     company?: string | null;
@@ -36,15 +41,39 @@ const fmt = (
   currency: string,
 ): string => {
   const n = toNum(val);
-  return `${n.toFixed(2)} ${currency}`;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+  }).format(n);
 };
 
-const fmtDate = (d: Date): string => {
-  return new Date(d).toLocaleDateString("en-US", {
+const fmtQty = (val: number | string | { toNumber(): number }): string => {
+  const n = toNum(val);
+  return n % 1 === 0 ? String(n) : n.toFixed(2);
+};
+
+const fmtDate = (d: Date): string =>
+  new Date(d).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+
+const PRIMARY = "#1a1a2e";
+const ACCENT = "#4361ee";
+const MUTED = "#666666";
+const LINE = "#e0e0e0";
+const WHITE = "#ffffff";
+const ROW_ALT = "#f7f7f7";
+
+const PAGE_MARGIN = 50;
+const PAGE_BOTTOM_MARGIN = 80; // reserve space for footer
+const COL = {
+  desc: { x: 56, w: 225 },
+  qty: { x: 286, w: 60 },
+  rate: { x: 356, w: 80 },
+  amount: { x: 436, w: 80 },
 };
 
 /**
@@ -52,127 +81,201 @@ const fmtDate = (d: Date): string => {
  */
 export const buildInvoicePdf = (invoice: InvoiceForPdf): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50, size: "A4" });
+    const doc = new PDFDocument({ margin: PAGE_MARGIN, size: "A4", autoFirstPage: true });
     const buffers: Buffer[] = [];
 
     doc.on("data", (chunk: Buffer) => buffers.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(buffers)));
     doc.on("error", reject);
 
-    const primaryColor = "#1a1a2e";
-    const accentColor = "#4361ee";
-    const mutedColor = "#666666";
-    const lineColor = "#e0e0e0";
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const contentWidth = pageWidth - PAGE_MARGIN * 2;
 
-    // ─── Header ──────────────────────────────────────────────
-    doc.rect(0, 0, doc.page.width, 80).fill(primaryColor);
+    // ─── Header bar ───────────────────────────────────────────
+    doc.rect(0, 0, pageWidth, 80).fill(PRIMARY);
+
     doc
-      .fillColor("#ffffff")
+      .fillColor(WHITE)
       .fontSize(28)
       .font("Helvetica-Bold")
-      .text("INVOICE", 50, 25);
+      .text("INVOICE", PAGE_MARGIN, 25);
 
     doc
       .fontSize(10)
       .font("Helvetica")
-      .text(`#${invoice.invoice_number}`, 50, 57);
+      .text(`#${invoice.invoice_number}`, PAGE_MARGIN, 57);
 
-    // ─── Invoice Meta ─────────────────────────────────────────
-    doc.fillColor(primaryColor).fontSize(10).font("Helvetica");
-    const metaTop = 100;
-    doc.text(`Issue Date:  ${fmtDate(invoice.issue_date)}`, 50, metaTop);
-    doc.text(`Due Date:    ${fmtDate(invoice.due_date)}`, 50, metaTop + 16);
+    // ─── FROM / TO / meta row ────────────────────────────────
+    const infoTop = 105;
 
-    // ─── Bill To ──────────────────────────────────────────────
+    // FROM (left)
     doc
-      .fillColor(accentColor)
-      .fontSize(9)
+      .fillColor(ACCENT)
+      .fontSize(8)
       .font("Helvetica-Bold")
-      .text("BILL TO", 300, metaTop);
+      .text("FROM", PAGE_MARGIN, infoTop);
 
-    doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold");
-    doc.text(invoice.client.name, 300, metaTop + 14);
+    const fromName =
+      [invoice.user.first_name, invoice.user.last_name].filter(Boolean).join(" ") ||
+      invoice.user.email;
 
-    doc.font("Helvetica").fillColor(mutedColor);
-    if (invoice.client.company) doc.text(invoice.client.company, 300);
-    if (invoice.client.email) doc.text(invoice.client.email, 300);
-    if (invoice.client.address) doc.text(invoice.client.address, 300);
+    doc
+      .fillColor(PRIMARY)
+      .fontSize(10)
+      .font("Helvetica-Bold")
+      .text(fromName, PAGE_MARGIN, infoTop + 13);
+
+    doc
+      .fillColor(MUTED)
+      .fontSize(9)
+      .font("Helvetica")
+      .text(invoice.user.email, PAGE_MARGIN, infoTop + 27);
+
+    // BILL TO (center)
+    const toX = 210;
+    doc
+      .fillColor(ACCENT)
+      .fontSize(8)
+      .font("Helvetica-Bold")
+      .text("BILL TO", toX, infoTop);
+
+    doc
+      .fillColor(PRIMARY)
+      .fontSize(10)
+      .font("Helvetica-Bold")
+      .text(invoice.client.name, toX, infoTop + 13);
+
+    doc.fillColor(MUTED).fontSize(9).font("Helvetica");
+    let clientY = infoTop + 27;
+    if (invoice.client.company) {
+      doc.text(invoice.client.company, toX, clientY);
+      clientY += 13;
+    }
+    if (invoice.client.email) {
+      doc.text(invoice.client.email, toX, clientY);
+      clientY += 13;
+    }
+    if (invoice.client.address) {
+      doc.text(invoice.client.address, toX, clientY, { width: 130 });
+    }
+
+    // Dates (right)
+    const dateX = 390;
+    doc
+      .fillColor(ACCENT)
+      .fontSize(8)
+      .font("Helvetica-Bold")
+      .text("ISSUE DATE", dateX, infoTop);
+    doc
+      .fillColor(PRIMARY)
+      .fontSize(9)
+      .font("Helvetica")
+      .text(fmtDate(invoice.issue_date), dateX, infoTop + 13);
+
+    doc
+      .fillColor(ACCENT)
+      .fontSize(8)
+      .font("Helvetica-Bold")
+      .text("DUE DATE", dateX, infoTop + 34);
+    doc
+      .fillColor(PRIMARY)
+      .fontSize(9)
+      .font("Helvetica")
+      .text(fmtDate(invoice.due_date), dateX, infoTop + 47);
 
     // ─── Divider ──────────────────────────────────────────────
-    const tableTop = 200;
+    const tableTop = 185;
     doc
-      .moveTo(50, tableTop - 10)
-      .lineTo(doc.page.width - 50, tableTop - 10)
-      .strokeColor(lineColor)
+      .moveTo(PAGE_MARGIN, tableTop - 8)
+      .lineTo(pageWidth - PAGE_MARGIN, tableTop - 8)
+      .strokeColor(LINE)
       .lineWidth(1)
       .stroke();
 
-    // ─── Table Header ─────────────────────────────────────────
-    doc.rect(50, tableTop, doc.page.width - 100, 20).fill(primaryColor);
-
+    // ─── Table header ─────────────────────────────────────────
+    doc.rect(PAGE_MARGIN, tableTop, contentWidth, 20).fill(PRIMARY);
     doc
-      .fillColor("#ffffff")
-      .fontSize(9)
+      .fillColor(WHITE)
+      .fontSize(8)
       .font("Helvetica-Bold")
-      .text("DESCRIPTION", 56, tableTop + 6, { width: 230 })
-      .text("QTY", 286, tableTop + 6, { width: 60, align: "right" })
-      .text("RATE", 356, tableTop + 6, { width: 80, align: "right" })
-      .text("AMOUNT", 436, tableTop + 6, { width: 80, align: "right" });
+      .text("DESCRIPTION", COL.desc.x, tableTop + 6, { width: COL.desc.w })
+      .text("QTY", COL.qty.x, tableTop + 6, { width: COL.qty.w, align: "right" })
+      .text("RATE", COL.rate.x, tableTop + 6, { width: COL.rate.w, align: "right" })
+      .text("AMOUNT", COL.amount.x, tableTop + 6, { width: COL.amount.w, align: "right" });
 
-    // ─── Table Rows ───────────────────────────────────────────
+    // ─── Table rows ───────────────────────────────────────────
     let rowY = tableTop + 26;
-    invoice.invoice_items.forEach((item, idx) => {
-      if (idx % 2 === 1) {
-        doc.rect(50, rowY - 4, doc.page.width - 100, 18).fill("#f7f7f7");
+    const ROW_PADDING = 8;
+
+    const ensureSpace = (needed: number) => {
+      if (rowY + needed > pageHeight - PAGE_BOTTOM_MARGIN) {
+        doc.addPage();
+        rowY = PAGE_MARGIN;
       }
-      doc.fillColor(primaryColor).fontSize(9).font("Helvetica");
-      doc.text(item.description, 56, rowY, { width: 225 });
-      doc.text(toNum(item.quantity).toFixed(2), 286, rowY, {
-        width: 60,
-        align: "right",
-      });
-      doc.text(fmt(item.rate, invoice.currency), 356, rowY, {
-        width: 80,
-        align: "right",
-      });
-      doc.text(fmt(item.amount, invoice.currency), 436, rowY, {
-        width: 80,
-        align: "right",
-      });
-      rowY += 20;
+    };
+
+    invoice.invoice_items.forEach((item, idx) => {
+      const descHeight = doc.heightOfString(item.description, { width: COL.desc.w });
+      const rowHeight = Math.max(descHeight, 12) + ROW_PADDING * 2;
+
+      ensureSpace(rowHeight);
+
+      if (idx % 2 === 1) {
+        doc.rect(PAGE_MARGIN, rowY - ROW_PADDING, contentWidth, rowHeight).fill(ROW_ALT);
+      }
+
+      const textY = rowY;
+      doc.fillColor(PRIMARY).fontSize(9).font("Helvetica");
+      doc.text(item.description, COL.desc.x, textY, { width: COL.desc.w });
+      doc.text(fmtQty(item.quantity), COL.qty.x, textY, { width: COL.qty.w, align: "right" });
+      doc.text(fmt(item.rate, invoice.currency), COL.rate.x, textY, { width: COL.rate.w, align: "right" });
+      doc.text(fmt(item.amount, invoice.currency), COL.amount.x, textY, { width: COL.amount.w, align: "right" });
+
+      rowY += rowHeight;
     });
 
     // ─── Totals ───────────────────────────────────────────────
-    rowY += 10;
+    ensureSpace(120);
+
+    rowY += 8;
     doc
-      .moveTo(50, rowY)
-      .lineTo(doc.page.width - 50, rowY)
-      .strokeColor(lineColor)
+      .moveTo(PAGE_MARGIN, rowY)
+      .lineTo(pageWidth - PAGE_MARGIN, rowY)
+      .strokeColor(LINE)
       .lineWidth(0.5)
       .stroke();
-    rowY += 12;
+    rowY += 14;
 
     const labelX = 350;
-    const valueX = 436;
+    const valueX = COL.amount.x;
 
     const drawTotalRow = (label: string, value: string, bold = false) => {
       doc
-        .fillColor(bold ? primaryColor : mutedColor)
+        .fillColor(bold ? PRIMARY : MUTED)
         .fontSize(bold ? 11 : 9)
         .font(bold ? "Helvetica-Bold" : "Helvetica")
-        .text(label, labelX, rowY, { width: 80, align: "right" })
-        .text(value, valueX, rowY, { width: 80, align: "right" });
-      rowY += bold ? 20 : 16;
+        .text(label, labelX, rowY, { width: COL.rate.w, align: "right" })
+        .text(value, valueX, rowY, { width: COL.amount.w, align: "right" });
+      rowY += bold ? 22 : 16;
     };
 
     drawTotalRow("Subtotal", fmt(invoice.subtotal, invoice.currency));
-    drawTotalRow("Tax", fmt(invoice.tax, invoice.currency));
-    drawTotalRow("Discount", `- ${fmt(invoice.discount, invoice.currency)}`);
+
+    const taxVal = toNum(invoice.tax);
+    if (taxVal > 0) {
+      drawTotalRow("Tax", fmt(taxVal, invoice.currency));
+    }
+
+    const discountVal = toNum(invoice.discount);
+    if (discountVal > 0) {
+      drawTotalRow("Discount", `- ${fmt(discountVal, invoice.currency)}`);
+    }
 
     doc
       .moveTo(labelX, rowY)
-      .lineTo(doc.page.width - 50, rowY)
-      .strokeColor(accentColor)
+      .lineTo(pageWidth - PAGE_MARGIN, rowY)
+      .strokeColor(ACCENT)
       .lineWidth(1)
       .stroke();
     rowY += 8;
@@ -181,56 +284,75 @@ export const buildInvoicePdf = (invoice: InvoiceForPdf): Promise<Buffer> => {
 
     // ─── Notes / Terms ────────────────────────────────────────
     if (invoice.notes || invoice.terms) {
-      rowY += 20;
+      rowY += 16;
+
+      const notesTermsHeight =
+        (invoice.notes
+          ? 22 + doc.heightOfString(invoice.notes, { width: contentWidth })
+          : 0) +
+        (invoice.terms
+          ? 22 + doc.heightOfString(invoice.terms, { width: contentWidth })
+          : 0);
+
+      ensureSpace(notesTermsHeight + 20);
+
       doc
-        .moveTo(50, rowY)
-        .lineTo(doc.page.width - 50, rowY)
-        .strokeColor(lineColor)
+        .moveTo(PAGE_MARGIN, rowY)
+        .lineTo(pageWidth - PAGE_MARGIN, rowY)
+        .strokeColor(LINE)
         .lineWidth(0.5)
         .stroke();
-      rowY += 12;
+      rowY += 14;
 
       if (invoice.notes) {
-        doc
-          .fillColor(accentColor)
-          .fontSize(9)
-          .font("Helvetica-Bold")
-          .text("NOTES", 50, rowY);
+        doc.fillColor(ACCENT).fontSize(8).font("Helvetica-Bold").text("NOTES", PAGE_MARGIN, rowY);
         rowY += 13;
         doc
-          .fillColor(mutedColor)
+          .fillColor(MUTED)
           .fontSize(9)
           .font("Helvetica")
-          .text(invoice.notes, 50, rowY, { width: doc.page.width - 100 });
-        rowY +=
-          doc.heightOfString(invoice.notes, { width: doc.page.width - 100 }) +
-          10;
+          .text(invoice.notes, PAGE_MARGIN, rowY, { width: contentWidth });
+        rowY += doc.heightOfString(invoice.notes, { width: contentWidth }) + 12;
       }
 
       if (invoice.terms) {
         doc
-          .fillColor(accentColor)
-          .fontSize(9)
+          .fillColor(ACCENT)
+          .fontSize(8)
           .font("Helvetica-Bold")
-          .text("TERMS & CONDITIONS", 50, rowY);
+          .text("TERMS & CONDITIONS", PAGE_MARGIN, rowY);
         rowY += 13;
         doc
-          .fillColor(mutedColor)
+          .fillColor(MUTED)
           .fontSize(9)
           .font("Helvetica")
-          .text(invoice.terms, 50, rowY, { width: doc.page.width - 100 });
+          .text(invoice.terms, PAGE_MARGIN, rowY, { width: contentWidth });
       }
     }
 
-    // ─── Footer ───────────────────────────────────────────────
-    doc
-      .fillColor(mutedColor)
-      .fontSize(8)
-      .font("Helvetica")
-      .text("Thank you for your business.", 50, doc.page.height - 60, {
-        align: "center",
-        width: doc.page.width - 100,
-      });
+    // ─── Footer (on every page) ───────────────────────────────
+    const pageCount = (doc as any).bufferedPageRange
+      ? (doc as any).bufferedPageRange().count
+      : 1;
+
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc
+        .fillColor(MUTED)
+        .fontSize(8)
+        .font("Helvetica")
+        .text("Thank you for your business.", PAGE_MARGIN, pageHeight - 55, {
+          align: "center",
+          width: contentWidth,
+        });
+
+      if (pageCount > 1) {
+        doc.text(`Page ${i + 1} of ${pageCount}`, PAGE_MARGIN, pageHeight - 42, {
+          align: "right",
+          width: contentWidth,
+        });
+      }
+    }
 
     doc.end();
   });
