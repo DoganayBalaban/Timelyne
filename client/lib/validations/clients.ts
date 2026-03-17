@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 export const createClientSchema = z.object({
-  name: z.string().min(1, "İsim zorunludur").max(255, "İsim çok uzun"),
+  name: z.string().min(1, "Name is required").max(255, "Name is too long"),
   company: z.string().max(255).optional().or(z.literal("")),
   email: z
     .string()
-    .email("Geçerli bir e-posta adresi giriniz")
+    .email("Please enter a valid email address")
     .optional()
     .or(z.literal("")),
   phone: z.string().max(50).optional().or(z.literal("")),
@@ -13,7 +13,7 @@ export const createClientSchema = z.object({
   notes: z.string().optional().or(z.literal("")),
   hourly_rate: z
     .number()
-    .positive("Saatlik ücret pozitif olmalıdır")
+    .positive("Hourly rate must be positive")
     .optional()
     .or(z.nan()),
 });

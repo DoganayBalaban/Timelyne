@@ -14,10 +14,10 @@
 <br />
 <div align="center">
   <a href="https://github.com/doganaybalaban/timelyne">
-    <img src="client/public/timelyne-logo.png" alt="Logo" width="300" height="200">
+    <img src="client/public/flowbill-logo.png" alt="Logo" width="300" height="200">
   </a>
 
-<h3 align="center">Timelyne</h3>
+<h3 align="center">Flowbill</h3>
 
   <p align="center">
     Manage your freelance business in under 10 minutes a day.
@@ -25,7 +25,7 @@
     <a href="https://github.com/doganaybalaban/timelyne"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/doganaybalaban/timelyne">View Demo</a>
+    <a href="https://flowbill.xyz">View Live</a>
     &middot;
     <a href="https://github.com/doganaybalaban/timelyne/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     &middot;
@@ -67,10 +67,10 @@
 ## About The Project
 
 <div align="center">
-  <img src="client/public/readme/gif.gif" alt="Timelyne Demo" width="100%">
+  <img src="client/public/readme/gif.gif" alt="Flowbill Demo" width="100%">
 </div>
 
-Timelyne is an **all-in-one SaaS platform** designed for freelancers and small agencies to replace scattered tools like Excel, Word, and WhatsApp with a single, professional workspace. It helps you track time, manage projects and clients, automate invoicing, and gain clear financial insights — all through a timeline-driven experience.
+**Flowbill** is an **all-in-one SaaS platform** designed for freelancers and small agencies to replace scattered tools like Excel, Word, and WhatsApp with a single, professional workspace. Track time, manage projects and clients, automate invoicing, accept online payments, and gain clear financial insights — all in one place.
 
 **Our core promise:**
 
@@ -110,6 +110,12 @@ Timelyne is an **all-in-one SaaS platform** designed for freelancers and small a
 
 ---
 
+### 🗂️ Tasks (Kanban Board)
+
+<img src="client/public/readme/ss-tasks.png" alt="Tasks Kanban" width="100%">
+
+---
+
 ### 🧾 Invoices
 
 <img src="client/public/readme/ss-invoices.png" alt="Invoices" width="100%">
@@ -122,6 +128,12 @@ Timelyne is an **all-in-one SaaS platform** designed for freelancers and small a
 
 ---
 
+### 🌐 Client Portal
+
+<img src="client/public/readme/ss-portal.png" alt="Client Portal" width="100%">
+
+---
+
 ### ⏱️ Time Tracking
 
 <img src="client/public/readme/ss-timers.png" alt="Timers" width="100%">
@@ -131,6 +143,12 @@ Timelyne is an **all-in-one SaaS platform** designed for freelancers and small a
 ### 💸 Expenses
 
 <img src="client/public/readme/ss-expenses.png" alt="Expenses" width="100%">
+
+---
+
+### 💳 Billing & Subscription
+
+<img src="client/public/readme/ss-billing.png" alt="Billing" width="100%">
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -155,8 +173,10 @@ Timelyne is an **all-in-one SaaS platform** designed for freelancers and small a
 
 - [![Docker][Docker]][Docker-url]
 - [![AWS][AWS]][AWS-url]
+- [![Stripe][Stripe]][Stripe-url]
 - [![Socket.io][Socket.io]][Socket.io-url]
 - [![BullMQ][BullMQ]][BullMQ-url]
+- [![Sentry][Sentry]][Sentry-url]
 - [![Zod][Zod]][Zod-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -250,11 +270,13 @@ Alternatively, you can run the entire stack using Docker:
 
 ## Usage
 
-Timelyne is designed to be a **digital assistant** for freelancers:
+Flowbill is designed to be a **digital assistant** for freelancers:
 
 - You focus on your craft
-- Timelyne tracks time in the background
+- Flowbill tracks time in the background
 - Generates invoices automatically as professional PDFs
+- Sends invoices directly to clients via a branded portal
+- Accepts online payments through Stripe
 - Follows up on payments with overdue alerts
 - Shows you exactly how much you earned with real-time dashboards
 
@@ -278,6 +300,20 @@ No clutter. No unnecessary features. Just what you need.
 - Tax-aware calculations (VAT, withholding, etc.)
 - Convert tracked hours directly into invoices
 - Background PDF generation via job queues (BullMQ)
+- Email invoices directly to clients via Resend
+
+### 🌐 Client Portal
+
+- Magic-link based client access (no login required)
+- Clients can view all their invoices and project status
+- One-click online payment via Stripe Checkout
+- Branded portal experience
+
+### 💳 Subscriptions & Billing
+
+- Free and Pro plans via Stripe Subscriptions
+- Self-service plan management through Stripe Customer Portal
+- Webhook-driven payment status sync
 
 ### 📁 Project & Client Management
 
@@ -305,24 +341,22 @@ No clutter. No unnecessary features. Just what you need.
 ### 🔔 Real-Time Notifications
 
 - Socket.IO powered live notifications
-- Instant updates across the application
-
-### 🧠 Timeline-Driven Workflow
-
-- All actions (time, tasks, invoices, payments) live on a single timeline
-- Clear overview of past, present, and upcoming work
+- Instant PDF ready / payment received alerts
 
 ### 🔒 Security & Performance
 
-- JWT-based authentication with HTTP-only cookies
-- Redis-powered caching & rate limiting
-- Zod-based input validation
+- JWT-based authentication with refresh token rotation (HTTP-only cookies)
+- Email verification gate on all protected routes
+- Redis-powered caching & rate limiting per endpoint
+- Zod-based input validation on all API payloads
 - Helmet security headers
+- GDPR-compliant account deletion with PII anonymisation
 
 ### 🩺 Observability
 
 - `GET /api/health` — live DB + Redis status with latency measurements (200/503)
 - `GET /api/docs` — interactive Swagger UI (OpenAPI 3.0) for all endpoints
+- Sentry error tracking on both frontend and backend
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -334,14 +368,18 @@ No clutter. No unnecessary features. Just what you need.
 timelyne/
 ├── client/                  # Next.js 16 Frontend
 │   ├── app/                 # App Router pages
-│   │   ├── (auth)/          # Login & Register
-│   │   └── (protected)/     # Authenticated pages
-│   │       ├── dashboard/   # Financial dashboard
-│   │       ├── clients/     # Client management
-│   │       ├── projects/    # Project management
-│   │       ├── invoices/    # Invoice management
-│   │       ├── time-entries/# Time tracking
-│   │       └── onboarding/  # User onboarding
+│   │   ├── (auth)/          # Login, Register, Password Reset, Email Verification
+│   │   ├── (protected)/     # Authenticated pages
+│   │   │   ├── dashboard/   # Financial dashboard
+│   │   │   ├── clients/     # Client management
+│   │   │   ├── projects/    # Project management
+│   │   │   ├── invoices/    # Invoice management
+│   │   │   ├── time-entries/# Time tracking
+│   │   │   ├── tasks/       # Kanban task board
+│   │   │   ├── expenses/    # Expense tracking
+│   │   │   ├── settings/    # Profile & billing settings
+│   │   │   └── onboarding/  # User onboarding
+│   │   └── (portal)/        # Public client portal (magic link)
 │   ├── components/          # Reusable UI components
 │   └── lib/                 # API clients, hooks, utilities
 │
@@ -354,8 +392,8 @@ timelyne/
 │       ├── validators/      # Zod schemas
 │       ├── queues/          # BullMQ job queues
 │       ├── workers/         # Background job processors
-│       ├── config/          # DB, Redis, S3, Swagger config
-│       └── utils/           # Helpers & utilities
+│       ├── config/          # DB, Redis, S3, Stripe, Swagger
+│       └── utils/           # Helpers, email templates, utilities
 │
 └── docker-compose.yml       # Full-stack Docker setup
 ```
@@ -367,19 +405,27 @@ timelyne/
 ## Roadmap
 
 - [x] Authentication & user onboarding
+- [x] Email verification & password reset
 - [x] Client & project management
 - [x] Time tracking
+- [x] Kanban task management
 - [x] Automated invoicing with PDF generation
-- [x] Financial dashboard
-- [x] Real-time notifications
-- [x] Docker deployment with health checks
+- [x] Client portal with magic-link access
+- [x] Online payments via Stripe Checkout
+- [x] Subscription plans via Stripe Billing
+- [x] Financial dashboard with revenue charts
 - [x] Expense tracking with receipt uploads & net profit stats
+- [x] Real-time notifications (Socket.IO)
 - [x] Email notifications & reminders (Resend)
+- [x] Redis rate limiting & caching
 - [x] REST API documentation (Swagger / OpenAPI 3.0)
+- [x] Docker deployment with health checks
+- [x] Sentry error tracking (frontend + backend)
+- [x] GDPR-compliant account deletion
 - [ ] Team support for small agencies
 - [ ] Mobile app
 
-See the [open issues](https://github.com/doganaybalaban/timelyne/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/doganaybalaban/timelyne/issues) for a full list of proposed features and known issues.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -478,9 +524,13 @@ Project Link: [https://github.com/doganaybalaban/timelyne](https://github.com/do
 [Docker-url]: https://www.docker.com/
 [AWS]: https://img.shields.io/badge/AWS_S3-FF9900?style=for-the-badge&logo=amazons3&logoColor=white
 [AWS-url]: https://aws.amazon.com/s3/
+[Stripe]: https://img.shields.io/badge/Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white
+[Stripe-url]: https://stripe.com/
 [Socket.io]: https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white
 [Socket.io-url]: https://socket.io/
 [BullMQ]: https://img.shields.io/badge/BullMQ-E34F26?style=for-the-badge&logo=redis&logoColor=white
 [BullMQ-url]: https://docs.bullmq.io/
+[Sentry]: https://img.shields.io/badge/Sentry-362D59?style=for-the-badge&logo=sentry&logoColor=white
+[Sentry-url]: https://sentry.io/
 [Zod]: https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white
 [Zod-url]: https://zod.dev/

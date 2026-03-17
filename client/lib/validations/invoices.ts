@@ -3,18 +3,18 @@ import { z } from "zod";
 // ── Invoice Item sub-schema ────────────────────────────────────────────────
 
 const invoiceItemSchema = z.object({
-  description: z.string().min(1, "Açıklama gereklidir"),
-  quantity: z.number().min(0.01, "Miktar en az 0.01 olmalıdır"),
-  rate: z.number().min(0, "Birim fiyat 0'dan küçük olamaz"),
+  description: z.string().min(1, "Description is required"),
+  quantity: z.number().min(0.01, "Quantity must be at least 0.01"),
+  rate: z.number().min(0, "Rate cannot be negative"),
 });
 
 // ── Create Invoice ─────────────────────────────────────────────────────────
 
 export const createInvoiceSchema = z
   .object({
-    clientId: z.string().min(1, "Müşteri seçimi zorunludur"),
-    issueDate: z.string().min(1, "Düzenleme tarihi zorunludur"),
-    dueDate: z.string().min(1, "Vade tarihi zorunludur"),
+    clientId: z.string().min(1, "Client selection is required"),
+    issueDate: z.string().min(1, "Issue date is required"),
+    dueDate: z.string().min(1, "Due date is required"),
     items: z.array(invoiceItemSchema).optional(),
     timeEntryIds: z.array(z.string()).optional(),
     tax: z.number().min(0).default(0),
@@ -28,7 +28,7 @@ export const createInvoiceSchema = z
       (data.items && data.items.length > 0) ||
       (data.timeEntryIds && data.timeEntryIds.length > 0),
     {
-      message: "En az bir kalem veya zaman kaydı eklemelisiniz",
+      message: "You must add at least one item or time entry",
       path: ["items"],
     },
   );
@@ -48,7 +48,7 @@ export const updateInvoiceSchema = z.object({
 
 export const markAsPaidSchema = z.object({
   paidAt: z.string().optional(),
-  amount: z.number().positive("Ödeme tutarı pozitif olmalıdır").optional(),
+  amount: z.number().positive("Payment amount must be positive").optional(),
   paymentMethod: z.string().optional().or(z.literal("")),
   referenceNumber: z.string().optional().or(z.literal("")),
   notes: z.string().optional().or(z.literal("")),

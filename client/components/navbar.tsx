@@ -35,16 +35,21 @@ const navItems = [
   { label: "Expenses", href: "/expenses", icon: Receipt },
 ];
 
-function UserAvatar({ firstName, lastName, email, avatarUrl }: {
+function UserAvatar({
+  firstName,
+  lastName,
+  email,
+  avatarUrl,
+}: {
   firstName?: string | null;
   lastName?: string | null;
   email?: string;
   avatarUrl?: string | null;
 }) {
-  const initials = [firstName?.[0], lastName?.[0]]
-    .filter(Boolean)
-    .join("")
-    .toUpperCase() || email?.[0]?.toUpperCase() || "?";
+  const initials =
+    [firstName?.[0], lastName?.[0]].filter(Boolean).join("").toUpperCase() ||
+    email?.[0]?.toUpperCase() ||
+    "?";
 
   if (avatarUrl) {
     return (
