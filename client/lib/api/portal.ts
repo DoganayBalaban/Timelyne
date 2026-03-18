@@ -94,12 +94,12 @@ export const portalApiClient = {
 
 // Freelancer-side portal management (uses the main authenticated api)
 export const clientPortalApi = {
-  enablePortal: async (clientId: string): Promise<{ success: boolean; client: any }> => {
+  enablePortal: async (clientId: string): Promise<{ success: boolean; client: unknown }> => {
     const res = await api.post(`/clients/${clientId}/portal/enable`);
     return res.data;
   },
 
-  disablePortal: async (clientId: string): Promise<{ success: boolean; client: any }> => {
+  disablePortal: async (clientId: string): Promise<{ success: boolean; client: unknown }> => {
     const res = await api.post(`/clients/${clientId}/portal/disable`);
     return res.data;
   },

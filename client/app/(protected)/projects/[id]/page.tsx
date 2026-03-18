@@ -413,6 +413,7 @@ function TasksTab({ projectId }: { projectId: string }) {
 
   // Sync when tasks change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems((tasks || []).map((t) => ({ ...t, column: t.status })));
   }, [tasks]);
 

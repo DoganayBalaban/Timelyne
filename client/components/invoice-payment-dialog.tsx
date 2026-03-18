@@ -46,6 +46,7 @@ export function InvoicePaymentDialog({
     reset,
     formState: { errors },
   } = useForm<MarkAsPaidFormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(markAsPaidSchema) as any,
     defaultValues: {
       paidAt: new Date().toISOString().split("T")[0],

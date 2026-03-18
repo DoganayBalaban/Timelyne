@@ -74,6 +74,7 @@ export default function PortalInvoiceDetailPage() {
     portalApiClient
       .getInvoice(invoiceId)
       .then((res) => setInvoice(res.invoice))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .catch((err: any) => {
         setError(err?.response?.data?.message ?? "Failed to load invoice.");
       })

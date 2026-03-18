@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 type RegisterError =
   | { kind: "email_taken" }
@@ -29,7 +29,9 @@ type RegisterError =
   | { kind: "generic"; message: string };
 
 function getRegisterError(error: unknown): RegisterError {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const status = (error as any)?.response?.status;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const msg: string = (error as any)?.response?.data?.message ?? "";
 
   if (!status) return { kind: "network" };
@@ -52,13 +54,13 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
   });
 
-  const password = watch("password", "");
+  const password = useWatch({ control, name: "password", defaultValue: "" });
 
   const passwordChecks = {
     length: password.length >= 8,

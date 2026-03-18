@@ -312,7 +312,6 @@ function ManualEntryDialog({
     setStartedAt(toLocal(entry?.started_at));
     setEndedAt(toLocal(entry?.ended_at));
     setBillable(entry?.billable ?? true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry]);
 
   const handleSubmit = (e: React.FormEvent) => {

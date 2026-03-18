@@ -21,7 +21,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 export default function ResetPasswordPage() {
   const params = useParams();
@@ -32,13 +32,13 @@ export default function ResetPasswordPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors },
   } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
   });
 
-  const password = watch("password", "");
+  const password = useWatch({ control, name: "password", defaultValue: "" });
 
   const passwordChecks = {
     length: password.length >= 8,
@@ -244,6 +244,7 @@ export default function ResetPasswordPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {resetPassword.error && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {(resetPassword.error as any).response?.data?.message ||
                   "Reset link is invalid or has expired. Please request a new one."}
               </div>
