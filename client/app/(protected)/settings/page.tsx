@@ -65,7 +65,8 @@ const workSchema = z.object({
     .number()
     .positive("Must be positive")
     .optional()
-    .or(z.literal("")),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .or(z.literal("" as any)),
   currency: z.string().length(3),
   timezone: z.string().min(1),
 });
