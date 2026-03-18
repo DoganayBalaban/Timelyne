@@ -65,6 +65,7 @@ export function ExpenseFormDialog({
     reset,
     formState: { errors },
   } = useForm<CreateExpenseFormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(createExpenseSchema) as any,
     defaultValues: {
       description: "",

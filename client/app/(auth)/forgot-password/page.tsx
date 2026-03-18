@@ -15,27 +15,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-export default function ForgotPasswordPage() {
-  const [emailSent, setEmailSent] = useState(false);
-  const forgotPassword = useForgotPassword();
-
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    formState: { errors },
-  } = useForm<ForgotPasswordInput>({
-    resolver: zodResolver(forgotPasswordSchema),
-  });
-
-  const onSubmit = (data: ForgotPasswordInput) => {
-    forgotPassword.mutate(data.email, {
-      onSuccess: () => setEmailSent(true),
-    });
-  };
-
-  /* ── Shared left panel ─────────────────────────────────── */
-  const LeftPanel = () => (
+/* ── Shared left panel ─────────────────────────────────── */
+function LeftPanel() {
+  return (
     <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 overflow-hidden">
       {/* Ambient glows */}
       <div className="pointer-events-none absolute inset-0">
@@ -100,6 +82,26 @@ export default function ForgotPasswordPage() {
       </div>
     </div>
   );
+}
+
+export default function ForgotPasswordPage() {
+  const [emailSent, setEmailSent] = useState(false);
+  const forgotPassword = useForgotPassword();
+
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(forgotPasswordSchema),
+  });
+
+  const onSubmit = (data: ForgotPasswordInput) => {
+    forgotPassword.mutate(data.email, {
+      onSuccess: () => setEmailSent(true),
+    });
+  };
 
   /* ── Success state ─────────────────────────────────────── */
   if (emailSent) {
@@ -230,6 +232,7 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {forgotPassword.error && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {(forgotPassword.error as any).response?.data?.message ||
                   "Something went wrong. Please try again."}
               </div>

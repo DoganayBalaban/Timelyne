@@ -9,15 +9,15 @@ function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    token ? "loading" : "error",
+  );
+  const [errorMsg, setErrorMsg] = useState(
+    token ? "" : "No token provided. Please use the link from your email.",
+  );
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      setErrorMsg("No token provided. Please use the link from your email.");
-      return;
-    }
+    if (!token) return;
 
     portalApiClient
       .verify(token)
@@ -25,6 +25,7 @@ function VerifyContent() {
         setStatus("success");
         setTimeout(() => router.push("/portal/dashboard"), 1500);
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .catch((err: any) => {
         setStatus("error");
         setErrorMsg(

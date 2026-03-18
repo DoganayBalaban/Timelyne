@@ -59,7 +59,7 @@ export interface CreateExpenseData {
   tax_deductible?: boolean;
 }
 
-export interface UpdateExpenseData extends Partial<CreateExpenseData> {}
+export type UpdateExpenseData = Partial<CreateExpenseData>;
 
 export const expensesApi = {
   getExpenses: async (params?: ExpensesQueryParams): Promise<ExpensesResponse> => {

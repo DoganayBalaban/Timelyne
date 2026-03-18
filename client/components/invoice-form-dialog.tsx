@@ -55,6 +55,7 @@ export function InvoiceFormDialog({
     reset,
     formState: { errors },
   } = useForm<CreateInvoiceInputData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(createInvoiceSchema) as any,
     defaultValues: {
       clientId: "",

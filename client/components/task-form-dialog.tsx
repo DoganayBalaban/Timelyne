@@ -49,6 +49,7 @@ export function TaskFormDialog({
   const [estimatedHours, setEstimatedHours] = useState("");
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (task) {
       setTitle(task.title);
       setDescription(task.description || "");
@@ -66,6 +67,7 @@ export function TaskFormDialog({
       setDueDate("");
       setEstimatedHours("");
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [task, open]);
 
   const isPending = createTask.isPending || updateTask.isPending;

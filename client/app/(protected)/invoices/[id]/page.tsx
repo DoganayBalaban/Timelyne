@@ -133,6 +133,7 @@ export default function InvoiceDetailPage() {
         handleCopyPaymentLink(data.data.url);
         toast.success("Payment link copied to clipboard!");
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onError: (err: any) =>
         toast.error(
           err?.response?.data?.message ?? "Failed to create payment link",
@@ -181,7 +182,8 @@ export default function InvoiceDetailPage() {
           toast.info("Generating PDF...", {
             description: "You will be notified when it's ready.",
           }),
-        onError: (err: any) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onError: (err: any) =>
           toast.error(
             err?.response?.data?.message ?? "Failed to generate PDF",
           ),
@@ -204,6 +206,7 @@ export default function InvoiceDetailPage() {
             ? "Invoice is being prepared and will be sent to the client shortly."
             : "Email queued — the client will receive it shortly.",
         ),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onError: (err: any) =>
         toast.error(err?.response?.data?.message ?? "Failed to send invoice"),
     });
@@ -268,7 +271,8 @@ export default function InvoiceDetailPage() {
                         { id: invoiceId, force: true },
                         {
                           onSuccess: () => toast.info("Regenerating PDF..."),
-                          onError: (err: any) =>
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onError: (err: any) =>
                             toast.error(
                               err?.response?.data?.message ??
                                 "Failed to regenerate PDF",

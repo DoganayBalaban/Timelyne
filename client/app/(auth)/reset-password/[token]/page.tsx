@@ -21,52 +21,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
-export default function ResetPasswordPage() {
-  const params = useParams();
-  const token = params.token as string;
-  const [success, setSuccess] = useState(false);
-  const resetPassword = useResetPassword();
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<ResetPasswordInput>({
-    resolver: zodResolver(resetPasswordSchema),
-  });
-
-  const password = watch("password", "");
-
-  const passwordChecks = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-  };
-
-  const strengthCount = Object.values(passwordChecks).filter(Boolean).length;
-  const strengthLabel =
-    strengthCount <= 1
-      ? { text: "Weak", color: "bg-red-500" }
-      : strengthCount <= 3
-        ? { text: "Fair", color: "bg-amber-500" }
-        : strengthCount === 4
-          ? { text: "Good", color: "bg-blue-500" }
-          : { text: "Strong", color: "bg-emerald-500" };
-
-  const onSubmit = (data: ResetPasswordInput) => {
-    resetPassword.mutate(
-      { token, password: data.password },
-      { onSuccess: () => setSuccess(true) },
-    );
-  };
-
-  /* ── Shared left panel ─────────────────────────────────── */
-  const LeftPanel = () => (
+/* ── Shared left panel ─────────────────────────────────── */
+function LeftPanel() {
+  return (
     <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-violet-500/20 blur-[100px]" />
@@ -131,6 +90,49 @@ export default function ResetPasswordPage() {
       </div>
     </div>
   );
+}
+
+export default function ResetPasswordPage() {
+  const params = useParams();
+  const token = params.token as string;
+  const [success, setSuccess] = useState(false);
+  const resetPassword = useResetPassword();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<ResetPasswordInput>({
+    resolver: zodResolver(resetPasswordSchema),
+  });
+
+  const password = useWatch({ control, name: "password", defaultValue: "" });
+
+  const passwordChecks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  };
+
+  const strengthCount = Object.values(passwordChecks).filter(Boolean).length;
+  const strengthLabel =
+    strengthCount <= 1
+      ? { text: "Weak", color: "bg-red-500" }
+      : strengthCount <= 3
+        ? { text: "Fair", color: "bg-amber-500" }
+        : strengthCount === 4
+          ? { text: "Good", color: "bg-blue-500" }
+          : { text: "Strong", color: "bg-emerald-500" };
+
+  const onSubmit = (data: ResetPasswordInput) => {
+    resetPassword.mutate(
+      { token, password: data.password },
+      { onSuccess: () => setSuccess(true) },
+    );
+  };
 
   /* ── Success state ─────────────────────────────────────── */
   if (success) {
@@ -244,6 +246,7 @@ export default function ResetPasswordPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {resetPassword.error && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {(resetPassword.error as any).response?.data?.message ||
                   "Reset link is invalid or has expired. Please request a new one."}
               </div>

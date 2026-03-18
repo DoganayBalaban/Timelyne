@@ -712,7 +712,6 @@ function PortalTab({
     id: string;
     email?: string | null;
     portal_enabled?: boolean;
-    [key: string]: any;
   };
 }) {
   const queryClient = useQueryClient();
