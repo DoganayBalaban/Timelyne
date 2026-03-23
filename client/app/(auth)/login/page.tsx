@@ -11,12 +11,15 @@ import {
   CheckCircle2,
   Clock,
   DollarSign,
+  Eye,
+  EyeOff,
   FileText,
   Loader2,
   WifiOff,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 function getLoginError(error: unknown): { message: string; hint?: string } {
@@ -54,6 +57,7 @@ const features = [
 
 export default function LoginPage() {
   const login = useLogin();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -214,13 +218,27 @@ export default function LoginPage() {
                   Password
                 </Label>
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                className="h-11"
-                {...register("password")}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-11 pr-10"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               <Link
                 href="/forgot-password"
                 className="text-xs text-violet-600 hover:text-violet-700 hover:underline transition-colors"
