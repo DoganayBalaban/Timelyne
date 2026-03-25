@@ -43,6 +43,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { useTranslation } from "@/lib/i18n/context";
 import { Client, ClientsQueryParams } from "@/lib/api/clients";
 import { useClients, useDeleteClient } from "@/lib/hooks/useClients";
 import {
@@ -62,6 +63,7 @@ import { useCallback, useState } from "react";
 
 export default function ClientsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [params, setParams] = useState<ClientsQueryParams>({
     page: 1,
     limit: 10,
@@ -129,15 +131,15 @@ export default function ClientsPage() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t("clients.title")}</h1>
               <p className="text-sm text-muted-foreground">
-                Manage your clients
+                {t("clients.subtitle")}
               </p>
             </div>
           </div>
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Client
+            {t("clients.new_client")}
           </Button>
         </div>
 
@@ -148,7 +150,7 @@ export default function ClientsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, company or email..."
+                  placeholder={t("clients.search_placeholder")}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
@@ -157,7 +159,7 @@ export default function ClientsPage() {
               </div>
               <Button variant="secondary" onClick={handleSearch}>
                 <Search className="mr-2 h-4 w-4" />
-                Search
+                {t("common.search")}
               </Button>
               <Select
                 value={params.sort}
@@ -170,13 +172,13 @@ export default function ClientsPage() {
               >
                 <SelectTrigger className="w-[180px]">
                   <ArrowUpDown className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Sort by" />
+                  <SelectValue placeholder={t("common.sort_by")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="created_at">Date Created</SelectItem>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="company">Company</SelectItem>
-                  <SelectItem value="hourly_rate">Hourly Rate</SelectItem>
+                  <SelectItem value="created_at">{t("common.date_created")}</SelectItem>
+                  <SelectItem value="name">{t("clients.sort_name")}</SelectItem>
+                  <SelectItem value="company">{t("clients.sort_company")}</SelectItem>
+                  <SelectItem value="hourly_rate">{t("clients.sort_hourly_rate")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -186,11 +188,11 @@ export default function ClientsPage() {
         {/* Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Client List</CardTitle>
+            <CardTitle>{t("clients.client_list")}</CardTitle>
             <CardDescription>
               {data
-                ? `${data.total} ${data.total === 1 ? "client" : "clients"} found`
-                : "Loading..."}
+                ? t(data.total === 1 ? "clients.clients_found_one" : "clients.clients_found_other", { count: data.total })
+                : t("common.loading")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -202,17 +204,17 @@ export default function ClientsPage() {
               </div>
             ) : error ? (
               <div className="text-center py-10 text-destructive">
-                Failed to load clients.
+                {t("clients.failed_to_load")}
               </div>
             ) : data?.clients.length === 0 ? (
               <div className="text-center py-16 space-y-3">
                 <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <div>
                   <p className="font-medium text-muted-foreground">
-                    No clients yet
+                    {t("clients.no_clients")}
                   </p>
                   <p className="text-sm text-muted-foreground/70">
-                    Add your first client to get started.
+                    {t("clients.no_clients_desc")}
                   </p>
                 </div>
                 <Button
@@ -221,7 +223,7 @@ export default function ClientsPage() {
                   className="mt-2"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Client
+                  {t("clients.add_client")}
                 </Button>
               </div>
             ) : (
@@ -235,7 +237,7 @@ export default function ClientsPage() {
                           onClick={() => handleSort("name")}
                         >
                           <span className="flex items-center gap-1">
-                            Name
+                            {t("clients.col_name")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
@@ -244,24 +246,24 @@ export default function ClientsPage() {
                           onClick={() => handleSort("company")}
                         >
                           <span className="flex items-center gap-1">
-                            Company
+                            {t("clients.col_company")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
                         <TableHead className="hidden md:table-cell">
-                          Email
+                          {t("clients.col_email")}
                         </TableHead>
                         <TableHead
                           className="hidden lg:table-cell cursor-pointer hover:text-foreground transition-colors"
                           onClick={() => handleSort("hourly_rate")}
                         >
                           <span className="flex items-center gap-1">
-                            Hourly Rate
+                            {t("clients.col_hourly_rate")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
                         <TableHead className="hidden lg:table-cell">
-                          Phone
+                          {t("clients.col_phone")}
                         </TableHead>
                         <TableHead className="w-[50px]" />
                       </TableRow>
@@ -322,7 +324,7 @@ export default function ClientsPage() {
                                   }}
                                 >
                                   <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
+                                  {t("common.edit")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
@@ -332,7 +334,7 @@ export default function ClientsPage() {
                                   }}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
+                                  {t("common.delete")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -347,7 +349,7 @@ export default function ClientsPage() {
                 {data && data.totalPages > 1 && (
                   <div className="flex items-center justify-between pt-4">
                     <p className="text-sm text-muted-foreground">
-                      Page {data.page} of {data.totalPages}
+                      {t("common.page_of", { page: data.page, total: data.totalPages })}
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
@@ -357,7 +359,7 @@ export default function ClientsPage() {
                         onClick={() => handlePageChange(data.page - 1)}
                       >
                         <ChevronLeft className="h-4 w-4" />
-                        Previous
+                        {t("common.previous")}
                       </Button>
                       <Button
                         variant="outline"
@@ -365,7 +367,7 @@ export default function ClientsPage() {
                         disabled={data.page >= data.totalPages}
                         onClick={() => handlePageChange(data.page + 1)}
                       >
-                        Next
+                        {t("common.next")}
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -388,13 +390,13 @@ export default function ClientsPage() {
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogTitle>{t("clients.delete_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this client? This action cannot be undone.
+              {t("clients.delete_desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -402,7 +404,7 @@ export default function ClientsPage() {
               {deleteClient.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -413,7 +415,7 @@ export default function ClientsPage() {
         <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50">
           <div className="flex items-center gap-3 bg-card p-4 rounded-lg shadow-lg border">
             <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Deleting...</span>
+            <span>{t("common.deleting")}</span>
           </div>
         </div>
       )}
