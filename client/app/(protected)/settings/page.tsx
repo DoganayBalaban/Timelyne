@@ -35,6 +35,7 @@ import {
 import {
   Briefcase,
   CheckCircle2,
+  Globe,
   KeyRound,
   Loader2,
   Shield,
@@ -47,6 +48,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useTranslation, type Locale } from "@/lib/i18n/context";
 
 /* ── Schemas ─────────────────────────────────────────────── */
 const profileSchema = z.object({
@@ -160,6 +162,7 @@ function AvatarPreview({
 export default function SettingsPage() {
   const { data: user, isLoading } = useUser();
   const updateMe = useUpdateMe();
+  const { t, locale, setLocale } = useTranslation();
   const deleteAccount = useDeleteAccount();
   const resendVerification = useResendVerification();
   const [deletePassword, setDeletePassword] = useState("");
@@ -251,15 +254,19 @@ export default function SettingsPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
-            Profile
+            {t("settings.tab_profile")}
           </TabsTrigger>
           <TabsTrigger value="work" className="gap-2">
             <Briefcase className="h-4 w-4" />
-            Work
+            {t("settings.tab_work")}
           </TabsTrigger>
           <TabsTrigger value="account" className="gap-2">
             <Shield className="h-4 w-4" />
-            Account
+            {t("settings.tab_account")}
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="gap-2">
+            <Globe className="h-4 w-4" />
+            {t("settings.tab_preferences")}
           </TabsTrigger>
         </TabsList>
 
@@ -712,6 +719,38 @@ export default function SettingsPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Preferences Tab ──────────────────────────────── */}
+        <TabsContent value="preferences">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings.preferences_title")}</CardTitle>
+              <CardDescription>{t("settings.preferences_desc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">{t("settings.language")}</Label>
+                <p className="text-xs text-muted-foreground">{t("settings.language_desc")}</p>
+                <div className="flex gap-2 pt-1">
+                  {(["en", "tr"] as Locale[]).map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => setLocale(lang)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                        locale === lang
+                          ? "bg-violet-600 text-white border-violet-600 shadow-sm shadow-violet-500/20"
+                          : "bg-background text-muted-foreground border-border hover:border-violet-400 hover:text-foreground"
+                      }`}
+                    >
+                      <span>{lang === "en" ? "🇬🇧" : "🇹🇷"}</span>
+                      {t(`settings.lang_${lang}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
