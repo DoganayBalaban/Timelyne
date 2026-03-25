@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTranslation } from "@/lib/i18n/context";
 import { InvoiceListItem, InvoicesQueryParams } from "@/lib/api/invoices";
 import {
   useDeleteInvoice,
@@ -63,16 +64,7 @@ import { toast } from "sonner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function getStatusLabel(status: string) {
-  const map: Record<string, string> = {
-    draft: "Draft",
-    sent: "Sent",
-    paid: "Paid",
-    overdue: "Overdue",
-    cancelled: "Cancelled",
-  };
-  return map[status] || status;
-}
+// getStatusLabel çeviri için bileşen içinde t() ile kullanılacak
 
 function getStatusVariant(
   status: string,
@@ -90,15 +82,7 @@ function getStatusVariant(
   return map[status] || "secondary";
 }
 
-function getPdfStatusLabel(status: string) {
-  const map: Record<string, string> = {
-    not_generated: "—",
-    processing: "Processing...",
-    generated: "Ready",
-    failed: "Failed",
-  };
-  return map[status] || status;
-}
+// getPdfStatusLabel çeviri için bileşen içinde t() ile kullanılacak
 
 function formatCurrency(amount: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
@@ -120,6 +104,20 @@ function formatDate(dateStr: string | null | undefined) {
 
 export default function InvoicesPage() {
   const router = useRouter();
+  const { t } = useTranslation();
+
+  const getStatusLabel = (status: string) =>
+    t(`invoices.status_${status}` as Parameters<typeof t>[0]) || status;
+
+  const getPdfStatusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      not_generated: "—",
+      processing: t("invoices.pdf_processing"),
+      generated: t("invoices.pdf_ready"),
+      failed: t("invoices.pdf_failed"),
+    };
+    return map[status] || status;
+  };
   const [params, setParams] = useState<InvoicesQueryParams>({
     page: 1,
     limit: 10,
@@ -140,8 +138,8 @@ export default function InvoicesPage() {
     updateInvoice.mutate(
       { id, data: { status: "sent" } },
       {
-        onSuccess: () => toast.success("Invoice marked as sent"),
-        onError: () => toast.error("Failed to update status"),
+        onSuccess: () => toast.success(t("invoices.toast_marked_sent")),
+        onError: () => toast.error(t("invoices.toast_mark_sent_error")),
       },
     );
   };
@@ -169,10 +167,10 @@ export default function InvoicesPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this invoice?")) {
+    if (confirm(t("invoices.confirm_delete"))) {
       deleteInvoice.mutate(id, {
-        onSuccess: () => toast.success("Invoice deleted"),
-        onError: () => toast.error("Failed to delete invoice"),
+        onSuccess: () => toast.success(t("invoices.toast_deleted")),
+        onError: () => toast.error(t("invoices.toast_delete_error")),
       });
     }
   };
@@ -182,24 +180,24 @@ export default function InvoicesPage() {
       { id },
       {
         onSuccess: () =>
-          toast.info("Generating PDF...", {
-            description: "You will be notified when it's ready.",
+          toast.info(t("invoices.toast_generating_pdf"), {
+            description: t("invoices.toast_pdf_desc"),
           }),
-        onError: () => toast.error("Failed to generate PDF"),
+        onError: () => toast.error(t("invoices.toast_pdf_error")),
       },
     );
   };
 
   const handleDownloadPdf = (id: string) => {
     downloadPdf.mutate(id, {
-      onError: () => toast.error("PDF is not ready yet"),
+      onError: () => toast.error(t("invoices.toast_pdf_not_ready")),
     });
   };
 
   const handleSendEmail = (id: string) => {
     sendEmail.mutate(id, {
-      onSuccess: () => toast.success("Sending email..."),
-      onError: () => toast.error("Failed to send email"),
+      onSuccess: () => toast.success(t("invoices.toast_email_sent")),
+      onError: () => toast.error(t("invoices.toast_email_error")),
     });
   };
 
@@ -213,15 +211,15 @@ export default function InvoicesPage() {
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t("invoices.title")}</h1>
               <p className="text-sm text-muted-foreground">
-                Manage your invoices
+                {t("invoices.subtitle")}
               </p>
             </div>
           </div>
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Invoice
+            {t("invoices.new_invoice")}
           </Button>
         </div>
 
@@ -229,31 +227,11 @@ export default function InvoicesPage() {
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              {
-                label: "Total",
-                value: stats.total_invoiced,
-                color: "text-foreground",
-              },
-              {
-                label: "Paid",
-                value: stats.total_paid,
-                color: "text-green-600",
-              },
-              {
-                label: "Pending",
-                value: stats.total_pending,
-                color: "text-blue-600",
-              },
-              {
-                label: "Overdue",
-                value: stats.total_overdue,
-                color: "text-red-600",
-              },
-              {
-                label: "Draft",
-                value: stats.total_draft,
-                color: "text-muted-foreground",
-              },
+              { label: t("invoices.stat_total"), value: stats.total_invoiced, color: "text-foreground" },
+              { label: t("invoices.stat_paid"), value: stats.total_paid, color: "text-green-600" },
+              { label: t("invoices.stat_pending"), value: stats.total_pending, color: "text-blue-600" },
+              { label: t("invoices.stat_overdue"), value: stats.total_overdue, color: "text-red-600" },
+              { label: t("invoices.stat_draft"), value: stats.total_draft, color: "text-muted-foreground" },
             ].map((stat) => (
               <Card key={stat.label}>
                 <CardContent className="pt-4 pb-4">
@@ -281,12 +259,12 @@ export default function InvoicesPage() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="all">{t("common.all_statuses")}</SelectItem>
+                  <SelectItem value="draft">{t("invoices.status_draft")}</SelectItem>
+                  <SelectItem value="sent">{t("invoices.status_sent")}</SelectItem>
+                  <SelectItem value="paid">{t("invoices.status_paid")}</SelectItem>
+                  <SelectItem value="overdue">{t("invoices.status_overdue")}</SelectItem>
+                  <SelectItem value="cancelled">{t("invoices.status_cancelled")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select
@@ -303,10 +281,10 @@ export default function InvoicesPage() {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="created_at">Date Created</SelectItem>
-                  <SelectItem value="issue_date">Issue Date</SelectItem>
-                  <SelectItem value="due_date">Due Date</SelectItem>
-                  <SelectItem value="total">Amount</SelectItem>
+                  <SelectItem value="created_at">{t("common.date_created")}</SelectItem>
+                  <SelectItem value="issue_date">{t("invoices.sort_issue_date")}</SelectItem>
+                  <SelectItem value="due_date">{t("invoices.sort_due_date")}</SelectItem>
+                  <SelectItem value="total">{t("invoices.sort_amount")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -316,11 +294,11 @@ export default function InvoicesPage() {
         {/* Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Invoice List</CardTitle>
+            <CardTitle>{t("invoices.invoice_list")}</CardTitle>
             <CardDescription>
               {data
-                ? `${data.meta.total} ${data.meta.total === 1 ? "invoice" : "invoices"} found`
-                : "Loading..."}
+                ? t(data.meta.total === 1 ? "invoices.invoices_found_one" : "invoices.invoices_found_other", { count: data.meta.total })
+                : t("common.loading")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -332,17 +310,17 @@ export default function InvoicesPage() {
               </div>
             ) : error ? (
               <div className="text-center py-10 text-destructive">
-                Failed to load invoices.
+                {t("invoices.failed_to_load")}
               </div>
             ) : data?.data.length === 0 ? (
               <div className="text-center py-16 space-y-3">
                 <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <div>
                   <p className="font-medium text-muted-foreground">
-                    No invoices yet
+                    {t("invoices.no_invoices")}
                   </p>
                   <p className="text-sm text-muted-foreground/70">
-                    Add your first invoice to get started.
+                    {t("invoices.no_invoices_desc")}
                   </p>
                 </div>
                 <Button
@@ -351,7 +329,7 @@ export default function InvoicesPage() {
                   className="mt-2"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Invoice
+                  {t("invoices.add_invoice")}
                 </Button>
               </div>
             ) : (
@@ -360,16 +338,16 @@ export default function InvoicesPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Invoice #</TableHead>
+                        <TableHead>{t("invoices.col_invoice_number")}</TableHead>
                         <TableHead className="hidden md:table-cell">
-                          Client
+                          {t("invoices.col_client")}
                         </TableHead>
                         <TableHead
                           className="cursor-pointer hover:text-foreground transition-colors"
                           onClick={() => handleSort("issue_date")}
                         >
                           <span className="flex items-center gap-1">
-                            Date
+                            {t("invoices.col_date")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
@@ -378,7 +356,7 @@ export default function InvoicesPage() {
                           onClick={() => handleSort("due_date")}
                         >
                           <span className="flex items-center gap-1">
-                            Due
+                            {t("invoices.col_due")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
@@ -387,13 +365,13 @@ export default function InvoicesPage() {
                           onClick={() => handleSort("total")}
                         >
                           <span className="flex items-center gap-1">
-                            Amount
+                            {t("invoices.col_amount")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{t("invoices.col_status")}</TableHead>
                         <TableHead className="hidden lg:table-cell">
-                          PDF
+                          {t("invoices.col_pdf")}
                         </TableHead>
                         <TableHead className="w-[50px]" />
                       </TableRow>
@@ -460,7 +438,7 @@ export default function InvoicesPage() {
                                   }}
                                 >
                                   <Pencil className="mr-2 h-4 w-4" />
-                                  Details
+                                  {t("invoices.action_details")}
                                 </DropdownMenuItem>
                                 {invoice.status === "draft" && (
                                   <DropdownMenuItem
@@ -470,7 +448,7 @@ export default function InvoicesPage() {
                                     }}
                                   >
                                     <Send className="mr-2 h-4 w-4" />
-                                    Mark as Sent
+                                    {t("invoices.action_mark_sent")}
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
@@ -482,7 +460,7 @@ export default function InvoicesPage() {
                                     }}
                                   >
                                     <FileText className="mr-2 h-4 w-4" />
-                                    Generate PDF
+                                    {t("invoices.action_generate_pdf")}
                                   </DropdownMenuItem>
                                 )}
                                 {invoice.pdf_status === "generated" && (
@@ -493,7 +471,7 @@ export default function InvoicesPage() {
                                     }}
                                   >
                                     <Download className="mr-2 h-4 w-4" />
-                                    Download PDF
+                                    {t("invoices.action_download_pdf")}
                                   </DropdownMenuItem>
                                 )}
                                 {invoice.pdf_status === "generated" && (
@@ -504,7 +482,7 @@ export default function InvoicesPage() {
                                     }}
                                   >
                                     <Mail className="mr-2 h-4 w-4" />
-                                    Send Email
+                                    {t("invoices.action_send_email")}
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
@@ -517,7 +495,7 @@ export default function InvoicesPage() {
                                     }}
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
+                                    {t("common.delete")}
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
@@ -533,7 +511,7 @@ export default function InvoicesPage() {
                 {data && data.meta.totalPages > 1 && (
                   <div className="flex items-center justify-between pt-4">
                     <p className="text-sm text-muted-foreground">
-                      Page {data.meta.page} of {data.meta.totalPages}
+                      {t("common.page_of", { page: data.meta.page, total: data.meta.totalPages })}
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
@@ -543,7 +521,7 @@ export default function InvoicesPage() {
                         onClick={() => handlePageChange(data.meta.page - 1)}
                       >
                         <ChevronLeft className="h-4 w-4" />
-                        Previous
+                        {t("common.previous")}
                       </Button>
                       <Button
                         variant="outline"
@@ -551,7 +529,7 @@ export default function InvoicesPage() {
                         disabled={data.meta.page >= data.meta.totalPages}
                         onClick={() => handlePageChange(data.meta.page + 1)}
                       >
-                        Next
+                        {t("common.next")}
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -571,7 +549,7 @@ export default function InvoicesPage() {
         <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50">
           <div className="flex items-center gap-3 bg-card p-4 rounded-lg shadow-lg border">
             <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Deleting...</span>
+            <span>{t("common.deleting")}</span>
           </div>
         </div>
       )}
