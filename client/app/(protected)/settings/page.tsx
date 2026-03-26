@@ -35,6 +35,7 @@ import {
 import {
   Briefcase,
   CheckCircle2,
+  Globe,
   KeyRound,
   Loader2,
   Shield,
@@ -47,6 +48,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useTranslation, type Locale } from "@/lib/i18n/context";
 
 /* ── Schemas ─────────────────────────────────────────────── */
 const profileSchema = z.object({
@@ -160,6 +162,7 @@ function AvatarPreview({
 export default function SettingsPage() {
   const { data: user, isLoading } = useUser();
   const updateMe = useUpdateMe();
+  const { t, locale, setLocale } = useTranslation();
   const deleteAccount = useDeleteAccount();
   const resendVerification = useResendVerification();
   const [deletePassword, setDeletePassword] = useState("");
@@ -206,8 +209,8 @@ export default function SettingsPage() {
         avatar_url: data.avatar_url || undefined,
       },
       {
-        onSuccess: () => toast.success("Profile updated"),
-        onError: () => toast.error("Failed to update profile"),
+        onSuccess: () => toast.success(t("settings.toast_profile_updated")),
+        onError: () => toast.error(t("settings.toast_profile_error")),
       }
     );
   };
@@ -221,8 +224,8 @@ export default function SettingsPage() {
         timezone: data.timezone,
       },
       {
-        onSuccess: () => toast.success("Work preferences updated"),
-        onError: () => toast.error("Failed to update preferences"),
+        onSuccess: () => toast.success(t("settings.toast_work_updated")),
+        onError: () => toast.error(t("settings.toast_work_error")),
       }
     );
   };
@@ -241,9 +244,9 @@ export default function SettingsPage() {
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("settings.title")}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage your profile, billing preferences, and account security.
+          {t("settings.subtitle")}
         </p>
       </div>
 
@@ -251,15 +254,19 @@ export default function SettingsPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
-            Profile
+            {t("settings.tab_profile")}
           </TabsTrigger>
           <TabsTrigger value="work" className="gap-2">
             <Briefcase className="h-4 w-4" />
-            Work
+            {t("settings.tab_work")}
           </TabsTrigger>
           <TabsTrigger value="account" className="gap-2">
             <Shield className="h-4 w-4" />
-            Account
+            {t("settings.tab_account")}
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="gap-2">
+            <Globe className="h-4 w-4" />
+            {t("settings.tab_preferences")}
           </TabsTrigger>
         </TabsList>
 
@@ -268,9 +275,9 @@ export default function SettingsPage() {
           <form onSubmit={profileForm.handleSubmit(onSaveProfile)}>
             <Card>
               <CardHeader>
-                <CardTitle>Profile information</CardTitle>
+                <CardTitle>{t("settings.profile_title")}</CardTitle>
                 <CardDescription>
-                  Your name and avatar are shown on invoices and in the app.
+                  {t("settings.profile_desc")}
                 </CardDescription>
               </CardHeader>
 
@@ -285,7 +292,7 @@ export default function SettingsPage() {
                   />
                   <div className="flex-1 space-y-1.5">
                     <Label htmlFor="avatar_url" className="text-sm font-medium">
-                      Avatar URL
+                      {t("settings.avatar_url")}
                     </Label>
                     <Input
                       id="avatar_url"
@@ -310,7 +317,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="first_name" className="text-sm font-medium">
-                      First name
+                      {t("settings.first_name")}
                     </Label>
                     <Input
                       id="first_name"
@@ -325,7 +332,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="last_name" className="text-sm font-medium">
-                      Last name
+                      {t("settings.last_name")}
                     </Label>
                     <Input
                       id="last_name"
@@ -351,7 +358,7 @@ export default function SettingsPage() {
                   {updateMe.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Save profile
+                  {t("settings.save_profile")}
                 </Button>
               </div>
             </Card>
@@ -363,17 +370,16 @@ export default function SettingsPage() {
           <form onSubmit={workForm.handleSubmit(onSaveWork)}>
             <Card>
               <CardHeader>
-                <CardTitle>Work preferences</CardTitle>
+                <CardTitle>{t("settings.work_title")}</CardTitle>
                 <CardDescription>
-                  These defaults are used when creating time entries and
-                  invoices. You can always override them per project or client.
+                  {t("settings.work_desc")}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-5">
                 {/* Role */}
                 <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">Account type</Label>
+                  <Label className="text-sm font-medium">{t("settings.account_type")}</Label>
                   <Controller
                     name="role"
                     control={workForm.control}
@@ -387,10 +393,10 @@ export default function SettingsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="freelancer">
-                            Freelancer — solo work
+                            {t("settings.freelancer")}
                           </SelectItem>
                           <SelectItem value="agency">
-                            Agency — team or studio
+                            {t("settings.agency")}
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -404,7 +410,7 @@ export default function SettingsPage() {
                     htmlFor="hourly_rate"
                     className="text-sm font-medium"
                   >
-                    Default hourly rate
+                    {t("settings.hourly_rate")}
                   </Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -433,7 +439,7 @@ export default function SettingsPage() {
                 {/* Currency */}
                 <div className="space-y-1.5">
                   <Label className="text-sm font-medium">
-                    Default currency
+                    {t("settings.currency")}
                   </Label>
                   <Controller
                     name="currency"
@@ -464,7 +470,7 @@ export default function SettingsPage() {
 
                 {/* Timezone */}
                 <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">Timezone</Label>
+                  <Label className="text-sm font-medium">{t("settings.timezone")}</Label>
                   <Controller
                     name="timezone"
                     control={workForm.control}
@@ -503,7 +509,7 @@ export default function SettingsPage() {
                   {updateMe.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Save preferences
+                  {t("settings.save_work")}
                 </Button>
               </div>
             </Card>
@@ -515,15 +521,15 @@ export default function SettingsPage() {
           {/* Account info */}
           <Card>
             <CardHeader>
-              <CardTitle>Account information</CardTitle>
+              <CardTitle>{t("settings.account_title")}</CardTitle>
               <CardDescription>
-                Your login email and plan details.
+                {t("settings.account_desc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Email */}
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Email address</Label>
+                <Label className="text-sm font-medium">{t("settings.email_address")}</Label>
                 <div className="flex items-center gap-3">
                   <Input
                     value={user?.email ?? ""}
@@ -536,7 +542,7 @@ export default function SettingsPage() {
                       className="gap-1 text-emerald-600 bg-emerald-500/10 border-emerald-500/20 shrink-0"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      Verified
+                      {t("settings.verified")}
                     </Badge>
                   ) : (
                     <div className="flex items-center gap-2 shrink-0">
@@ -545,7 +551,7 @@ export default function SettingsPage() {
                         className="gap-1 text-amber-600 bg-amber-500/10 border-amber-500/20"
                       >
                         <XCircle className="h-3.5 w-3.5" />
-                        Unverified
+                        {t("settings.not_verified")}
                       </Badge>
                       <Button
                         variant="outline"
@@ -553,15 +559,15 @@ export default function SettingsPage() {
                         className="h-7 text-xs"
                         disabled={resendVerification.isPending || resendVerification.isSuccess}
                         onClick={() => user?.email && resendVerification.mutate(user.email, {
-                          onSuccess: () => toast.success("Verification email sent"),
-                          onError: () => toast.error("Failed to send verification email"),
+                          onSuccess: () => toast.success(t("settings.toast_verification_sent")),
+                          onError: () => toast.error(t("settings.toast_verification_error")),
                         })}
                       >
                         {resendVerification.isPending
                           ? <Loader2 className="h-3 w-3 animate-spin" />
                           : resendVerification.isSuccess
-                          ? "Sent"
-                          : "Resend"
+                          ? t("settings.resend_sent")
+                          : t("settings.resend_verification")
                         }
                       </Button>
                     </div>
@@ -577,7 +583,7 @@ export default function SettingsPage() {
               {/* Plan */}
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium">Current plan</p>
+                  <p className="text-sm font-medium">{t("settings.current_plan")}</p>
                   <p className="text-xs text-muted-foreground">
                     {user?.plan_expires_at
                       ? `Renews ${new Date(user.plan_expires_at).toLocaleDateString("en-US", { dateStyle: "medium" })}`
@@ -600,7 +606,7 @@ export default function SettingsPage() {
                     href="/settings/billing"
                     className="text-xs text-primary underline-offset-4 hover:underline"
                   >
-                    Manage
+                    {t("settings.manage_billing")}
                   </Link>
                 </div>
               </div>
@@ -609,7 +615,7 @@ export default function SettingsPage() {
 
               {/* Member since */}
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Member since</span>
+                <span className="text-muted-foreground">{t("settings.member_since")}</span>
                 <span className="font-medium">
                   {user?.created_at
                     ? new Date(user.created_at).toLocaleDateString("en-US", {
@@ -624,23 +630,22 @@ export default function SettingsPage() {
           {/* Password */}
           <Card>
             <CardHeader>
-              <CardTitle>Password & security</CardTitle>
+              <CardTitle>{t("settings.password_security")}</CardTitle>
               <CardDescription>
                 Update your password to keep your account secure.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium">Change password</p>
+                <p className="text-sm font-medium">{t("settings.reset_password")}</p>
                 <p className="text-xs text-muted-foreground">
-                  You&apos;ll receive a reset link at your registered email
-                  address.
+                  {t("settings.reset_password_desc")}
                 </p>
               </div>
               <Button asChild variant="outline" className="shrink-0 gap-2">
                 <Link href="/forgot-password">
                   <KeyRound className="h-4 w-4" />
-                  Reset password
+                  {t("settings.reset_password")}
                 </Link>
               </Button>
             </CardContent>
@@ -649,69 +654,97 @@ export default function SettingsPage() {
           {/* Danger Zone */}
           <Card className="border-destructive/40">
             <CardHeader>
-              <CardTitle className="text-destructive">Danger zone</CardTitle>
+              <CardTitle className="text-destructive">{t("settings.danger_zone")}</CardTitle>
               <CardDescription>
-                Permanently delete your account and all associated data. This
-                action cannot be undone.
+                {t("settings.delete_account_desc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium">Delete account</p>
+                <p className="text-sm font-medium">{t("settings.delete_account")}</p>
                 <p className="text-xs text-muted-foreground">
-                  All your data — clients, invoices, projects — will be
-                  permanently removed.
+                  {t("settings.delete_account_desc")}
                 </p>
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm" className="shrink-0 gap-2">
                     <Trash2 className="h-4 w-4" />
-                    Delete account
+                    {t("settings.delete_account")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                    <AlertDialogTitle>{t("settings.delete_confirm_title")}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will permanently delete all your data including
-                      clients, projects, invoices, and time entries. Your active
-                      subscription will also be cancelled. This cannot be undone.
+                      {t("settings.delete_confirm_desc")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <div className="space-y-1.5 py-2">
                     <Label htmlFor="delete-password" className="text-sm font-medium">
-                      Confirm your password
+                      {t("settings.enter_password")}
                     </Label>
                     <Input
                       id="delete-password"
                       type="password"
-                      placeholder="Enter your password"
+                      placeholder={t("settings.password_placeholder")}
                       value={deletePassword}
                       onChange={(e) => setDeletePassword(e.target.value)}
                     />
                   </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setDeletePassword("")}>
-                      Cancel
+                      {t("common.cancel")}
                     </AlertDialogCancel>
                     <Button
                       variant="destructive"
                       disabled={!deletePassword || deleteAccount.isPending}
                       onClick={() =>
                         deleteAccount.mutate(deletePassword, {
-                          onError: () => toast.error("Incorrect password or server error"),
+                          onError: () => toast.error(t("settings.toast_delete_error")),
                         })
                       }
                     >
                       {deleteAccount.isPending && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      Yes, delete my account
+                      {t("settings.confirm_delete")}
                     </Button>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Preferences Tab ──────────────────────────────── */}
+        <TabsContent value="preferences">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings.preferences_title")}</CardTitle>
+              <CardDescription>{t("settings.preferences_desc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">{t("settings.language")}</Label>
+                <p className="text-xs text-muted-foreground">{t("settings.language_desc")}</p>
+                <div className="flex gap-2 pt-1">
+                  {(["en", "tr"] as Locale[]).map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => setLocale(lang)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                        locale === lang
+                          ? "bg-violet-600 text-white border-violet-600 shadow-sm shadow-violet-500/20"
+                          : "bg-background text-muted-foreground border-border hover:border-violet-400 hover:text-foreground"
+                      }`}
+                    >
+                      <span>{lang === "en" ? "🇬🇧" : "🇹🇷"}</span>
+                      {t(`settings.lang_${lang}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -43,6 +43,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { useTranslation } from "@/lib/i18n/context";
 import { Project, ProjectsQueryParams } from "@/lib/api/projects";
 import { useDeleteProject, useProjects } from "@/lib/hooks/useProjects";
 import {
@@ -60,16 +61,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
-// Status helpers
-function getStatusLabel(status: string) {
-  const map: Record<string, string> = {
-    active: "Active",
-    completed: "Completed",
-    on_hold: "On Hold",
-    cancelled: "Cancelled",
-  };
-  return map[status] || status;
-}
+// Status helpers — çeviri için t() kullanılacak, bu fonksiyon kaldırıldı
 
 function getStatusVariant(status: string) {
   const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -100,6 +92,9 @@ function formatDate(dateStr: string | null | undefined) {
 
 export default function ProjectsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const getStatusLabel = (status: string) =>
+    t(`projects.status_${status}` as Parameters<typeof t>[0]) || status;
   const [params, setParams] = useState<ProjectsQueryParams>({
     page: 1,
     limit: 10,
@@ -175,15 +170,15 @@ export default function ProjectsPage() {
               <FolderOpen className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t("projects.title")}</h1>
               <p className="text-sm text-muted-foreground">
-                Manage your projects
+                {t("projects.subtitle")}
               </p>
             </div>
           </div>
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Project
+            {t("projects.new_project")}
           </Button>
         </div>
 
@@ -194,7 +189,7 @@ export default function ProjectsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by project name..."
+                  placeholder={t("projects.search_placeholder")}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
@@ -203,21 +198,21 @@ export default function ProjectsPage() {
               </div>
               <Button variant="secondary" onClick={handleSearch}>
                 <Search className="mr-2 h-4 w-4" />
-                Search
+                {t("common.search")}
               </Button>
               <Select
                 value={params.status || "all"}
                 onValueChange={handleStatusFilter}
               >
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t("common.status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="on_hold">On Hold</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="all">{t("common.all_statuses")}</SelectItem>
+                  <SelectItem value="active">{t("projects.status_active")}</SelectItem>
+                  <SelectItem value="completed">{t("projects.status_completed")}</SelectItem>
+                  <SelectItem value="on_hold">{t("projects.status_on_hold")}</SelectItem>
+                  <SelectItem value="cancelled">{t("projects.status_cancelled")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select
@@ -231,14 +226,14 @@ export default function ProjectsPage() {
               >
                 <SelectTrigger className="w-[180px]">
                   <ArrowUpDown className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Sort by" />
+                  <SelectValue placeholder={t("common.sort_by")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="created_at">Date Created</SelectItem>
-                  <SelectItem value="name">Project Name</SelectItem>
-                  <SelectItem value="deadline">Deadline</SelectItem>
-                  <SelectItem value="budget">Budget</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="created_at">{t("common.date_created")}</SelectItem>
+                  <SelectItem value="name">{t("projects.sort_project_name")}</SelectItem>
+                  <SelectItem value="deadline">{t("projects.sort_deadline")}</SelectItem>
+                  <SelectItem value="budget">{t("projects.sort_budget")}</SelectItem>
+                  <SelectItem value="status">{t("projects.sort_status")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -248,11 +243,11 @@ export default function ProjectsPage() {
         {/* Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Project List</CardTitle>
+            <CardTitle>{t("projects.project_list")}</CardTitle>
             <CardDescription>
               {data
-                ? `${data.total} ${data.total === 1 ? "project" : "projects"} found`
-                : "Loading..."}
+                ? t(data.total === 1 ? "projects.projects_found_one" : "projects.projects_found_other", { count: data.total })
+                : t("common.loading")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -264,17 +259,17 @@ export default function ProjectsPage() {
               </div>
             ) : error ? (
               <div className="text-center py-10 text-destructive">
-                Failed to load projects.
+                {t("projects.failed_to_load")}
               </div>
             ) : data?.projects.length === 0 ? (
               <div className="text-center py-16 space-y-3">
                 <FolderOpen className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <div>
                   <p className="font-medium text-muted-foreground">
-                    No projects yet
+                    {t("projects.no_projects")}
                   </p>
                   <p className="text-sm text-muted-foreground/70">
-                    Add your first project to get started.
+                    {t("projects.no_projects_desc")}
                   </p>
                 </div>
                 <Button
@@ -283,7 +278,7 @@ export default function ProjectsPage() {
                   className="mt-2"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Project
+                  {t("projects.add_project")}
                 </Button>
               </div>
             ) : (
@@ -297,19 +292,19 @@ export default function ProjectsPage() {
                           onClick={() => handleSort("name")}
                         >
                           <span className="flex items-center gap-1">
-                            Project Name
+                            {t("projects.col_project_name")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
                         <TableHead className="hidden md:table-cell">
-                          Client
+                          {t("projects.col_client")}
                         </TableHead>
                         <TableHead
                           className="cursor-pointer hover:text-foreground transition-colors"
                           onClick={() => handleSort("status")}
                         >
                           <span className="flex items-center gap-1">
-                            Status
+                            {t("projects.col_status")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
@@ -318,7 +313,7 @@ export default function ProjectsPage() {
                           onClick={() => handleSort("budget")}
                         >
                           <span className="flex items-center gap-1">
-                            Budget
+                            {t("projects.col_budget")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
@@ -327,7 +322,7 @@ export default function ProjectsPage() {
                           onClick={() => handleSort("deadline")}
                         >
                           <span className="flex items-center gap-1">
-                            Deadline
+                            {t("projects.col_deadline")}
                             <ArrowUpDown className="h-3 w-3" />
                           </span>
                         </TableHead>
@@ -400,7 +395,7 @@ export default function ProjectsPage() {
                                   }}
                                 >
                                   <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
+                                  {t("common.edit")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
@@ -410,7 +405,7 @@ export default function ProjectsPage() {
                                   }}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
+                                  {t("common.delete")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -425,7 +420,7 @@ export default function ProjectsPage() {
                 {data && data.totalPages > 1 && (
                   <div className="flex items-center justify-between pt-4">
                     <p className="text-sm text-muted-foreground">
-                      Page {data.page} of {data.totalPages}
+                      {t("common.page_of", { page: data.page, total: data.totalPages })}
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
@@ -435,7 +430,7 @@ export default function ProjectsPage() {
                         onClick={() => handlePageChange(data.page - 1)}
                       >
                         <ChevronLeft className="h-4 w-4" />
-                        Previous
+                        {t("common.previous")}
                       </Button>
                       <Button
                         variant="outline"
@@ -443,7 +438,7 @@ export default function ProjectsPage() {
                         disabled={data.page >= data.totalPages}
                         onClick={() => handlePageChange(data.page + 1)}
                       >
-                        Next
+                        {t("common.next")}
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -466,13 +461,13 @@ export default function ProjectsPage() {
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogTitle>{t("projects.delete_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this project? This action cannot be undone.
+              {t("projects.delete_desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -480,7 +475,7 @@ export default function ProjectsPage() {
               {deleteProject.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -491,7 +486,7 @@ export default function ProjectsPage() {
         <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50">
           <div className="flex items-center gap-3 bg-card p-4 rounded-lg shadow-lg border">
             <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Deleting...</span>
+            <span>{t("common.deleting")}</span>
           </div>
         </div>
       )}

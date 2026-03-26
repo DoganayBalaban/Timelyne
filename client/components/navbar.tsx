@@ -24,19 +24,20 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/context";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Clients", href: "/clients", icon: Users },
-  { label: "Projects", href: "/projects", icon: FolderOpen },
-  { label: "Invoices", href: "/invoices", icon: FileText },
-  { label: "Time", href: "/time-entries", icon: Timer },
-  { label: "Expenses", href: "/expenses", icon: Receipt },
-];
+const navItemDefs = [
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { key: "clients", href: "/clients", icon: Users },
+  { key: "projects", href: "/projects", icon: FolderOpen },
+  { key: "invoices", href: "/invoices", icon: FileText },
+  { key: "time", href: "/time-entries", icon: Timer },
+  { key: "expenses", href: "/expenses", icon: Receipt },
+] as const;
 
 function UserAvatar({
   firstName,
@@ -76,7 +77,13 @@ export function Navbar() {
   const pathname = usePathname();
   const { data: user } = useUser();
   const logout = useLogout();
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = navItemDefs.map((item) => ({
+    ...item,
+    label: t(`navbar.${item.key}`),
+  }));
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -156,7 +163,7 @@ export function Navbar() {
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  {t("navbar.settings")}
                 </Link>
               </DropdownMenuItem>
 
@@ -172,7 +179,7 @@ export function Navbar() {
                 ) : (
                   <LogOut className="mr-2 h-4 w-4" />
                 )}
-                Sign out
+                {t("navbar.sign_out")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

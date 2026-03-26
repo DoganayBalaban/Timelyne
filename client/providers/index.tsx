@@ -1,5 +1,6 @@
 "use client";
 
+import { LanguageProvider } from "@/lib/i18n/context";
 import { store } from "@/lib/store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
@@ -25,7 +26,9 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </QueryClientProvider>
     </ReduxProvider>
   );
