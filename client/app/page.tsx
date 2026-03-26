@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import type { Metadata } from "next";
 import {
   ArrowRight,
   BarChart3,
@@ -16,6 +17,14 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://flowbill.xyz";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: SITE_URL,
+  },
+};
 
 const features = [
   {
@@ -646,6 +655,64 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Flowbill",
+              url: SITE_URL,
+              logo: `${SITE_URL}/flowbill-logo.png`,
+              description:
+                "Flowbill helps freelancers track time, manage clients and projects, and generate professional PDF invoices — all in one place.",
+              sameAs: [],
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "Flowbill",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web",
+              url: SITE_URL,
+              description:
+                "Time tracking, invoicing, client and project management for freelancers.",
+              offers: [
+                {
+                  "@type": "Offer",
+                  name: "Free",
+                  price: "0",
+                  priceCurrency: "USD",
+                  description: "10 invoices/month, basic time tracking and client management.",
+                },
+                {
+                  "@type": "Offer",
+                  name: "Starter",
+                  price: "9",
+                  priceCurrency: "USD",
+                  description: "For solo freelancers. Unlimited invoices and projects.",
+                },
+                {
+                  "@type": "Offer",
+                  name: "Pro",
+                  price: "19",
+                  priceCurrency: "USD",
+                  description: "For established freelancers. Advanced reporting and client portal.",
+                },
+                {
+                  "@type": "Offer",
+                  name: "Agency",
+                  price: "49",
+                  priceCurrency: "USD",
+                  description: "For small agencies. Everything in Pro plus team features.",
+                },
+              ],
+            },
+          ]),
+        }}
+      />
     </div>
   );
 }
