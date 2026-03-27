@@ -38,6 +38,7 @@ export function useInvoiceStats(start?: string, end?: string) {
     queryKey: ["invoices", "stats", start, end],
     queryFn: () => invoicesApi.getInvoiceStats(start, end),
     select: (data) => data.data,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

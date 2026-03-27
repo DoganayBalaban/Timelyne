@@ -21,6 +21,7 @@ export function useExpenseStats(params?: { start_date?: string; end_date?: strin
     queryKey: ["expenses", "stats", params],
     queryFn: () => expensesApi.getStats(params),
     select: (data) => data.stats,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

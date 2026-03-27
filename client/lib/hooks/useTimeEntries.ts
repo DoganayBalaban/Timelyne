@@ -29,6 +29,7 @@ export function useTimeEntry(id: string) {
     queryFn: () => timeEntriesApi.getById(id),
     select: (res) => res.data,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -38,6 +39,7 @@ export function useTimeReport(params?: TimeReportParams) {
     queryKey: ["time-entries", "report", params],
     queryFn: () => timeEntriesApi.getReport(params),
     select: (res) => res.data,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

@@ -84,6 +84,7 @@ export function useProjectTimeEntries(id: string) {
     queryFn: () => projectsApi.getProjectTimeEntries(id),
     select: (data) => data.timeEntries,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -94,6 +95,7 @@ export function useProjectStats(id: string) {
     queryFn: () => projectsApi.getProjectStats(id),
     select: (data) => data.stats,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -104,6 +106,7 @@ export function useProjectAttachments(id: string) {
     queryFn: () => projectsApi.getProjectAttachments(id),
     select: (data) => data.attachments,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
