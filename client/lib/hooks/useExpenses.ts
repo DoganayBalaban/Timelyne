@@ -12,6 +12,7 @@ export function useExpenses(params?: ExpensesQueryParams) {
   return useQuery({
     queryKey: ["expenses", params],
     queryFn: () => expensesApi.getExpenses(params),
+    staleTime: 5 * 60 * 1000,
   });
 }
 

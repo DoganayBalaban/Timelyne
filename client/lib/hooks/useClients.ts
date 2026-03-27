@@ -16,6 +16,7 @@ export function useClients(params?: ClientsQueryParams) {
     queryFn: () => clientsApi.getClients(params),
     // Unwrap the nested data shape so callers get { clients, total, page, ... }
     select: (res) => res.data,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -27,6 +28,7 @@ export function useClient(id: string) {
     queryFn: () => clientsApi.getClient(id),
     select: (res) => res.data,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

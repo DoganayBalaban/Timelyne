@@ -13,6 +13,7 @@ export function useProjects(params?: ProjectsQueryParams) {
   return useQuery({
     queryKey: ["projects", params],
     queryFn: () => projectsApi.getProjects(params),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -23,6 +24,7 @@ export function useProject(id: string) {
     queryFn: () => projectsApi.getProject(id),
     select: (data) => data.project,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -71,6 +73,7 @@ export function useProjectTasks(id: string) {
     queryFn: () => projectsApi.getProjectTasks(id),
     select: (data) => data.tasks,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

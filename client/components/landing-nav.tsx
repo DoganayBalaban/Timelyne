@@ -4,17 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const handler = useCallback(() => setScrolled(window.scrollY > 12), []);
+
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 12);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
-  }, []);
+  }, [handler]);
 
   return (
     <header

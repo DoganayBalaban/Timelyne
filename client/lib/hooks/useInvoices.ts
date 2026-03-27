@@ -15,6 +15,7 @@ export function useInvoices(params?: InvoicesQueryParams) {
   return useQuery({
     queryKey: ["invoices", params],
     queryFn: () => invoicesApi.getInvoices(params),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
