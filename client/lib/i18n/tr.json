@@ -613,5 +613,15 @@
     "language_desc": "Arayüz dilini seç.",
     "lang_en": "English",
     "lang_tr": "Türkçe"
+  },
+  "errors": {
+    "not_found_title": "Sayfa bulunamadı",
+    "not_found_desc": "Aradığın sayfa mevcut değil veya taşınmış olabilir.",
+    "not_found_btn": "Panele git",
+    "not_found_home": "Ana sayfaya dön",
+    "error_title": "Bir hata oluştu",
+    "error_desc": "Beklenmeyen bir hata meydana geldi. Ekibimiz bilgilendirildi.",
+    "error_retry": "Tekrar dene",
+    "error_home": "Panele git"
   }
 }

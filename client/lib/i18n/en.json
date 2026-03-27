@@ -613,5 +613,15 @@
     "language_desc": "Choose the language for the interface.",
     "lang_en": "English",
     "lang_tr": "Türkçe"
+  },
+  "errors": {
+    "not_found_title": "Page not found",
+    "not_found_desc": "The page you're looking for doesn't exist or has been moved.",
+    "not_found_btn": "Go to dashboard",
+    "not_found_home": "Back to home",
+    "error_title": "Something went wrong",
+    "error_desc": "An unexpected error occurred. Our team has been notified.",
+    "error_retry": "Try again",
+    "error_home": "Go to dashboard"
   }
 }
