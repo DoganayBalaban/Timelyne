@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Invoice } from "@/lib/api/invoices";
 import { useClients } from "@/lib/hooks/useClients";
 import { useCreateInvoice, useUpdateInvoice } from "@/lib/hooks/useInvoices";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   CreateInvoiceInputData,
   createInvoiceSchema,
@@ -47,6 +48,7 @@ export function InvoiceFormDialog({
   const { data: clientsData } = useClients();
   const createInvoice = useCreateInvoice();
   const updateInvoice = useUpdateInvoice();
+  const { t } = useTranslation();
 
   const {
     register,
@@ -124,22 +126,22 @@ export function InvoiceFormDialog({
         },
         {
           onSuccess: () => {
-            toast.success("Invoice updated");
+            toast.success(t("invoices.toast_updated"));
             onOpenChange(false);
           },
           onError: () => {
-            toast.error("Failed to update invoice");
+            toast.error(t("invoices.toast_update_error"));
           },
         },
       );
     } else {
       createInvoice.mutate(data, {
         onSuccess: () => {
-          toast.success("Invoice created");
+          toast.success(t("invoices.toast_created"));
           onOpenChange(false);
         },
         onError: () => {
-          toast.error("Failed to create invoice");
+          toast.error(t("invoices.toast_create_error"));
         },
       });
     }
@@ -149,22 +151,20 @@ export function InvoiceFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[680px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-full overflow-y-auto sm:max-w-[680px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Edit Invoice" : "New Invoice"}
+            {isEditing ? t("invoices.form_edit_title") : t("invoices.form_new_title")}
           </DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Update the invoice's information."
-              : "Create a new invoice."}
+            {isEditing ? t("invoices.form_edit_desc") : t("invoices.form_new_desc")}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Client Selection */}
+          {/* Client */}
           <div className="space-y-2">
-            <Label>Client *</Label>
+            <Label>{t("invoices.form_client")} *</Label>
             <Controller
               control={control}
               name="clientId"
@@ -175,7 +175,7 @@ export function InvoiceFormDialog({
                   disabled={isEditing}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select client" />
+                    <SelectValue placeholder={t("invoices.form_select_client")} />
                   </SelectTrigger>
                   <SelectContent>
                     {clientsData?.clients?.map(
@@ -190,64 +190,57 @@ export function InvoiceFormDialog({
               )}
             />
             {errors.clientId && (
-              <p className="text-sm text-destructive">
-                {errors.clientId.message}
-              </p>
+              <p className="text-sm text-destructive">{errors.clientId.message}</p>
             )}
           </div>
 
           {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Issue Date *</Label>
+              <Label>{t("invoices.form_issue_date")} *</Label>
               <Input type="date" {...register("issueDate")} />
               {errors.issueDate && (
-                <p className="text-sm text-destructive">
-                  {errors.issueDate.message}
-                </p>
+                <p className="text-sm text-destructive">{errors.issueDate.message}</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label>Due Date *</Label>
+              <Label>{t("invoices.form_due_date")} *</Label>
               <Input type="date" {...register("dueDate")} />
               {errors.dueDate && (
-                <p className="text-sm text-destructive">
-                  {errors.dueDate.message}
-                </p>
+                <p className="text-sm text-destructive">{errors.dueDate.message}</p>
               )}
             </div>
           </div>
 
+          {/* Items */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Items</Label>
+              <Label>{t("invoices.form_items")}</Label>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  append({ description: "", quantity: 1, rate: 0 })
-                }
+                onClick={() => append({ description: "", quantity: 1, rate: 0 })}
               >
                 <Plus className="mr-1 h-3 w-3" />
-                Add Item
+                {t("invoices.form_add_item")}
               </Button>
             </div>
-            {/* Column headers */}
-            <div className="grid grid-cols-[1fr_80px_100px_36px] gap-2 text-xs text-muted-foreground font-medium">
-              <span>Description</span>
-              <span>Qty</span>
-              <span>Rate</span>
+
+            {/* Column headers — desktop only */}
+            <div className="hidden sm:grid sm:grid-cols-[1fr_80px_100px_36px] gap-2 text-xs text-muted-foreground font-medium">
+              <span>{t("invoices.form_col_description")}</span>
+              <span>{t("invoices.form_col_qty")}</span>
+              <span>{t("invoices.form_col_rate")}</span>
               <span />
             </div>
+
             {fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="grid grid-cols-[1fr_80px_100px_36px] gap-2 items-start"
-              >
+              <div key={field.id} className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-[1fr_80px_100px_36px] sm:gap-2 sm:items-start">
+                {/* Description — full width on mobile */}
                 <div>
                   <Input
-                    placeholder="e.g. Web Design Service"
+                    placeholder={t("invoices.form_item_placeholder")}
                     {...register(`items.${index}.description`)}
                   />
                   {errors.items?.[index]?.description && (
@@ -256,32 +249,31 @@ export function InvoiceFormDialog({
                     </p>
                   )}
                 </div>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="e.g. 10"
-                  {...register(`items.${index}.quantity`, {
-                    valueAsNumber: true,
-                  })}
-                />
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="e.g. 500"
-                  {...register(`items.${index}.rate`, {
-                    valueAsNumber: true,
-                  })}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                  onClick={() => fields.length > 1 && remove(index)}
-                  disabled={fields.length <= 1}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {/* Qty + Rate + Delete — row on mobile */}
+                <div className="grid grid-cols-[1fr_1fr_36px] gap-2 sm:contents">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder={t("invoices.form_col_qty")}
+                    {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder={t("invoices.form_col_rate")}
+                    {...register(`items.${index}.rate`, { valueAsNumber: true })}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                    onClick={() => fields.length > 1 && remove(index)}
+                    disabled={fields.length <= 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
             {errors.items && !Array.isArray(errors.items) && (
@@ -289,10 +281,10 @@ export function InvoiceFormDialog({
             )}
           </div>
 
-          {/* Tax & Discount */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Tax, Discount, Currency */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label>Tax (%)</Label>
+              <Label>{t("invoices.form_tax")}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -300,15 +292,15 @@ export function InvoiceFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Discount (%)</Label>
+              <Label>{t("invoices.form_discount")}</Label>
               <Input
                 type="number"
                 step="0.01"
                 {...register("discount", { valueAsNumber: true })}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Currency</Label>
+            <div className="space-y-2 col-span-2 sm:col-span-1">
+              <Label>{t("invoices.form_currency")}</Label>
               <Controller
                 control={control}
                 name="currency"
@@ -330,19 +322,19 @@ export function InvoiceFormDialog({
           </div>
 
           {/* Notes & Terms */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Notes</Label>
+              <Label>{t("invoices.form_notes")}</Label>
               <Textarea
-                placeholder="Invoice notes..."
+                placeholder={t("invoices.form_notes_placeholder")}
                 {...register("notes")}
                 rows={3}
               />
             </div>
             <div className="space-y-2">
-              <Label>Terms</Label>
+              <Label>{t("invoices.form_terms")}</Label>
               <Textarea
-                placeholder="Payment terms..."
+                placeholder={t("invoices.form_terms_placeholder")}
                 {...register("terms")}
                 rows={3}
               />
@@ -355,11 +347,11 @@ export function InvoiceFormDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Save Changes" : "Create"}
+              {isEditing ? t("invoices.form_save_btn") : t("invoices.form_create_btn")}
             </Button>
           </DialogFooter>
         </form>

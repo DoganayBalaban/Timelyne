@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Project } from "@/lib/api/projects";
 import { useClients } from "@/lib/hooks/useClients";
 import { useCreateProject, useUpdateProject } from "@/lib/hooks/useProjects";
+import { useTranslation } from "@/lib/i18n/context";
 import { createProjectSchema } from "@/lib/validations/projects";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -37,13 +38,6 @@ interface ProjectFormDialogProps {
 
 type FormData = z.infer<typeof createProjectSchema>;
 
-const statusOptions = [
-  { value: "active", label: "Active" },
-  { value: "completed", label: "Completed" },
-  { value: "on_hold", label: "On Hold" },
-  { value: "cancelled", label: "Cancelled" },
-];
-
 export function ProjectFormDialog({
   open,
   onOpenChange,
@@ -53,6 +47,14 @@ export function ProjectFormDialog({
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const { data: clientsData } = useClients({ limit: 100 });
+  const { t } = useTranslation();
+
+  const statusOptions = [
+    { value: "active", label: t("projects.status_active") },
+    { value: "completed", label: t("projects.status_completed") },
+    { value: "on_hold", label: t("projects.status_on_hold") },
+    { value: "cancelled", label: t("projects.status_cancelled") },
+  ];
 
   const {
     register,
@@ -108,7 +110,6 @@ export function ProjectFormDialog({
   }, [open, project, reset]);
 
   const onSubmit = (data: FormData) => {
-    // Clean empty strings, undefined, and NaN values
     const cleaned = Object.fromEntries(
       Object.entries(data).filter(
         ([, v]) =>
@@ -116,7 +117,6 @@ export function ProjectFormDialog({
       )
     );
 
-    // Convert dates to ISO format
     if (cleaned.start_date) {
       cleaned.start_date = new Date(cleaned.start_date as string).toISOString();
     }
@@ -141,49 +141,42 @@ export function ProjectFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[580px]">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[580px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Edit Project" : "New Project"}
+            {isEditing ? t("projects.form_edit_title") : t("projects.form_new_title")}
           </DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Update the project's information."
-              : "Create a new project."}
+            {isEditing ? t("projects.form_edit_desc") : t("projects.form_new_desc")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Name */}
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="name">
-                Project Name <span className="text-destructive">*</span>
+                {t("projects.form_project_name")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
-                placeholder="Project name"
+                placeholder={t("projects.form_project_name")}
                 {...register("name")}
               />
               {errors.name && (
-                <p className="text-sm text-destructive">
-                  {errors.name.message}
-                </p>
+                <p className="text-sm text-destructive">{errors.name.message}</p>
               )}
             </div>
 
             {/* Status */}
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>{t("projects.form_status")}</Label>
               <Controller
                 name="status"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
+                  <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue placeholder={t("projects.form_select_status")} />
                     </SelectTrigger>
                     <SelectContent>
                       {statusOptions.map((opt) => (
@@ -199,7 +192,7 @@ export function ProjectFormDialog({
 
             {/* Client */}
             <div className="space-y-2">
-              <Label>Client</Label>
+              <Label>{t("projects.form_client")}</Label>
               <Controller
                 name="client_id"
                 control={control}
@@ -209,10 +202,10 @@ export function ProjectFormDialog({
                     onValueChange={(val) => field.onChange(val === "none" ? "" : val)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
+                      <SelectValue placeholder={t("projects.form_select_client")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No Client</SelectItem>
+                      <SelectItem value="none">{t("projects.form_no_client")}</SelectItem>
                       {clients.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name}
@@ -225,9 +218,51 @@ export function ProjectFormDialog({
               />
             </div>
 
-            {/* Color */}
+            {/* Budget */}
             <div className="space-y-2">
-              <Label htmlFor="color">Color</Label>
+              <Label htmlFor="budget">{t("projects.form_budget")}</Label>
+              <Input
+                id="budget"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                {...register("budget", { valueAsNumber: true })}
+              />
+              {errors.budget && (
+                <p className="text-sm text-destructive">{errors.budget.message}</p>
+              )}
+            </div>
+
+            {/* Hourly Rate */}
+            <div className="space-y-2">
+              <Label htmlFor="hourly_rate">{t("projects.form_hourly_rate")}</Label>
+              <Input
+                id="hourly_rate"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                {...register("hourly_rate", { valueAsNumber: true })}
+              />
+              {errors.hourly_rate && (
+                <p className="text-sm text-destructive">{errors.hourly_rate.message}</p>
+              )}
+            </div>
+
+            {/* Start Date */}
+            <div className="space-y-2">
+              <Label htmlFor="start_date">{t("projects.form_start_date")}</Label>
+              <Input id="start_date" type="date" {...register("start_date")} />
+            </div>
+
+            {/* Deadline */}
+            <div className="space-y-2">
+              <Label htmlFor="deadline">{t("projects.form_deadline")}</Label>
+              <Input id="deadline" type="date" {...register("deadline")} />
+            </div>
+
+            {/* Color */}
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="color">{t("projects.form_color")}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="color"
@@ -242,73 +277,17 @@ export function ProjectFormDialog({
                 />
               </div>
               {errors.color && (
-                <p className="text-sm text-destructive">
-                  {errors.color.message}
-                </p>
+                <p className="text-sm text-destructive">{errors.color.message}</p>
               )}
-            </div>
-
-            {/* Budget */}
-            <div className="space-y-2">
-              <Label htmlFor="budget">Budget ($)</Label>
-              <Input
-                id="budget"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                {...register("budget", { valueAsNumber: true })}
-              />
-              {errors.budget && (
-                <p className="text-sm text-destructive">
-                  {errors.budget.message}
-                </p>
-              )}
-            </div>
-
-            {/* Hourly Rate */}
-            <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Hourly Rate ($)</Label>
-              <Input
-                id="hourly_rate"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                {...register("hourly_rate", { valueAsNumber: true })}
-              />
-              {errors.hourly_rate && (
-                <p className="text-sm text-destructive">
-                  {errors.hourly_rate.message}
-                </p>
-              )}
-            </div>
-
-            {/* Start Date */}
-            <div className="space-y-2">
-              <Label htmlFor="start_date">Start Date</Label>
-              <Input
-                id="start_date"
-                type="date"
-                {...register("start_date")}
-              />
-            </div>
-
-            {/* Deadline */}
-            <div className="space-y-2">
-              <Label htmlFor="deadline">Deadline</Label>
-              <Input
-                id="deadline"
-                type="date"
-                {...register("deadline")}
-              />
             </div>
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t("projects.form_description")}</Label>
             <Textarea
               id="description"
-              placeholder="Description about this project..."
+              placeholder={t("projects.form_description")}
               rows={3}
               {...register("description")}
             />
@@ -321,11 +300,11 @@ export function ProjectFormDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Save Changes" : "Create"}
+              {isEditing ? t("projects.form_save_btn") : t("projects.form_create_btn")}
             </Button>
           </DialogFooter>
         </form>

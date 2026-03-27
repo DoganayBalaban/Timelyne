@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Client } from "@/lib/api/clients";
 import { useCreateClient, useUpdateClient } from "@/lib/hooks/useClients";
+import { useTranslation } from "@/lib/i18n/context";
 import { createClientSchema } from "@/lib/validations/clients";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -37,6 +38,7 @@ export function ClientFormDialog({
   const isEditing = !!client;
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
+  const { t } = useTranslation();
 
   const {
     register,
@@ -81,7 +83,6 @@ export function ClientFormDialog({
   }, [open, client, reset]);
 
   const onSubmit = (data: FormData) => {
-    // Clean empty strings, undefined, and NaN values
     const cleaned = Object.fromEntries(
       Object.entries(data).filter(
         ([, v]) => v !== "" && v !== undefined && !(typeof v === "number" && isNaN(v))
@@ -91,17 +92,11 @@ export function ClientFormDialog({
     if (isEditing && client) {
       updateClient.mutate(
         { id: client.id, data: cleaned },
-        {
-          onSuccess: () => {
-            onOpenChange(false);
-          },
-        }
+        { onSuccess: () => onOpenChange(false) }
       );
     } else {
       createClient.mutate(cleaned as { name: string }, {
-        onSuccess: () => {
-          onOpenChange(false);
-        },
+        onSuccess: () => onOpenChange(false),
       });
     }
   };
@@ -113,23 +108,21 @@ export function ClientFormDialog({
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Edit Client" : "New Client"}
+            {isEditing ? t("clients.form_edit_title") : t("clients.form_new_title")}
           </DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Update the client's information."
-              : "Add a new client to your workspace."}
+            {isEditing ? t("clients.form_edit_desc") : t("clients.form_new_desc")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">
-                Name <span className="text-destructive">*</span>
+                {t("clients.form_name")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
-                placeholder="Client name"
+                placeholder={t("clients.form_name_placeholder")}
                 {...register("name")}
               />
               {errors.name && (
@@ -137,15 +130,15 @@ export function ClientFormDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
+              <Label htmlFor="company">{t("clients.form_company")}</Label>
               <Input
                 id="company"
-                placeholder="Company name"
+                placeholder={t("clients.form_company_placeholder")}
                 {...register("company")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("clients.form_email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -153,29 +146,27 @@ export function ClientFormDialog({
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-sm text-destructive">
-                  {errors.email.message}
-                </p>
+                <p className="text-sm text-destructive">{errors.email.message}</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">{t("clients.form_phone")}</Label>
               <Input
                 id="phone"
-                placeholder="+1 555 123 4567"
+                placeholder={t("clients.form_phone_placeholder")}
                 {...register("phone")}
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">{t("clients.form_address")}</Label>
               <Input
                 id="address"
-                placeholder="Address"
+                placeholder={t("clients.form_address_placeholder")}
                 {...register("address")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Hourly Rate ($)</Label>
+              <Label htmlFor="hourly_rate">{t("clients.form_hourly_rate")}</Label>
               <Input
                 id="hourly_rate"
                 type="number"
@@ -184,17 +175,15 @@ export function ClientFormDialog({
                 {...register("hourly_rate", { valueAsNumber: true })}
               />
               {errors.hourly_rate && (
-                <p className="text-sm text-destructive">
-                  {errors.hourly_rate.message}
-                </p>
+                <p className="text-sm text-destructive">{errors.hourly_rate.message}</p>
               )}
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">{t("clients.form_notes")}</Label>
             <Textarea
               id="notes"
-              placeholder="Notes about this client..."
+              placeholder={t("clients.form_notes_placeholder")}
               rows={3}
               {...register("notes")}
             />
@@ -206,11 +195,11 @@ export function ClientFormDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Save Changes" : "Create"}
+              {isEditing ? t("clients.form_save_btn") : t("clients.form_create_btn")}
             </Button>
           </DialogFooter>
         </form>

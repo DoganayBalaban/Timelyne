@@ -21,6 +21,7 @@ import {
 import { Expense } from "@/lib/api/expenses";
 import { useCreateExpense, useUpdateExpense } from "@/lib/hooks/useExpenses";
 import { useProjects } from "@/lib/hooks/useProjects";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   CreateExpenseFormData,
   createExpenseSchema,
@@ -38,16 +39,6 @@ interface ExpenseFormDialogProps {
   expense?: Expense | null;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  software: "Software",
-  domain: "Domain",
-  hosting: "Hosting",
-  travel: "Travel",
-  office: "Office",
-  hardware: "Hardware",
-  other: "Other",
-};
-
 export function ExpenseFormDialog({
   open,
   onOpenChange,
@@ -57,6 +48,7 @@ export function ExpenseFormDialog({
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const { data: projectsData } = useProjects({ limit: 100, sort: "name", order: "asc" });
+  const { t } = useTranslation();
 
   const {
     register,
@@ -120,22 +112,22 @@ export function ExpenseFormDialog({
         { id: expense.id, data: payload },
         {
           onSuccess: () => {
-            toast.success("Expense updated successfully");
+            toast.success(t("expenses.toast_updated"));
             onOpenChange(false);
           },
           onError: () => {
-            toast.error("Failed to update expense");
+            toast.error(t("expenses.toast_update_error"));
           },
         },
       );
     } else {
       createExpense.mutate(payload, {
         onSuccess: () => {
-          toast.success("Expense created successfully");
+          toast.success(t("expenses.toast_created"));
           onOpenChange(false);
         },
         onError: () => {
-          toast.error("Failed to create expense");
+          toast.error(t("expenses.toast_create_error"));
         },
       });
     }
@@ -147,21 +139,21 @@ export function ExpenseFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Expense" : "New Expense"}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? t("expenses.form_edit_title") : t("expenses.form_new_title")}
+          </DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Update the expense details."
-              : "Record a new business expense."}
+            {isEditing ? t("expenses.form_edit_desc") : t("expenses.form_new_desc")}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="description">{t("expenses.form_description")} *</Label>
             <Input
               id="description"
-              placeholder="e.g. Monthly SaaS subscription"
+              placeholder={t("expenses.form_description_placeholder")}
               {...register("description")}
             />
             {errors.description && (
@@ -170,9 +162,9 @@ export function ExpenseFormDialog({
           </div>
 
           {/* Amount + Currency */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount *</Label>
+              <Label htmlFor="amount">{t("expenses.form_amount")} *</Label>
               <Input
                 id="amount"
                 type="number"
@@ -186,7 +178,7 @@ export function ExpenseFormDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label>Currency</Label>
+              <Label>{t("expenses.form_currency")}</Label>
               <Controller
                 control={control}
                 name="currency"
@@ -209,7 +201,7 @@ export function ExpenseFormDialog({
 
           {/* Date */}
           <div className="space-y-2">
-            <Label htmlFor="date">Date *</Label>
+            <Label htmlFor="date">{t("expenses.form_date")} *</Label>
             <Input id="date" type="date" {...register("date")} />
             {errors.date && (
               <p className="text-sm text-destructive">{errors.date.message}</p>
@@ -217,9 +209,9 @@ export function ExpenseFormDialog({
           </div>
 
           {/* Category + Project */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label>{t("expenses.form_category")}</Label>
               <Controller
                 control={control}
                 name="category"
@@ -231,13 +223,13 @@ export function ExpenseFormDialog({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder={t("expenses.form_category")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">No category</SelectItem>
+                      <SelectItem value="__none__">{t("expenses.form_no_category")}</SelectItem>
                       {EXPENSE_CATEGORIES.map((cat) => (
                         <SelectItem key={cat} value={cat}>
-                          {CATEGORY_LABELS[cat]}
+                          {t(`expenses.cat_${cat}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -246,7 +238,7 @@ export function ExpenseFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Project</Label>
+              <Label>{t("expenses.form_project")}</Label>
               <Controller
                 control={control}
                 name="project_id"
@@ -258,10 +250,10 @@ export function ExpenseFormDialog({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select project" />
+                      <SelectValue placeholder={t("expenses.form_project")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">No project</SelectItem>
+                      <SelectItem value="__none__">{t("expenses.form_no_project")}</SelectItem>
                       {projectsData?.projects.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.name}
@@ -290,7 +282,7 @@ export function ExpenseFormDialog({
               )}
             />
             <Label htmlFor="tax_deductible" className="cursor-pointer font-normal">
-              Tax deductible
+              {t("expenses.form_tax_deductible")}
             </Label>
           </div>
 
@@ -300,11 +292,11 @@ export function ExpenseFormDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Save Changes" : "Create"}
+              {isEditing ? t("expenses.form_save_btn") : t("expenses.form_create_btn")}
             </Button>
           </DialogFooter>
         </form>
