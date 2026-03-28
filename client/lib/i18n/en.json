@@ -624,6 +624,28 @@
     "lang_en": "English",
     "lang_tr": "Türkçe"
   },
+  "onboarding": {
+    "step_of": "Step {{step}} of {{total}}",
+    "step_complete": "{{pct}}% complete",
+    "step1_title": "Welcome, {{name}}! 👋",
+    "step1_desc": "Help us personalize Flowbill for you",
+    "step1_label": "What type of work do you do?",
+    "role_freelancer": "Freelancer",
+    "role_freelancer_desc": "Independent professional",
+    "role_agency": "Agency",
+    "role_agency_desc": "Working with a team",
+    "step2_title": "Basic Settings",
+    "step2_desc": "Set your timezone, currency and hourly rate",
+    "timezone": "Timezone",
+    "timezone_placeholder": "Select timezone",
+    "currency": "Currency",
+    "currency_placeholder": "Select currency",
+    "hourly_rate": "Hourly Rate (optional)",
+    "hourly_rate_hint": "This will be your default hourly rate for projects. You can change it later.",
+    "btn_back": "Back",
+    "btn_complete": "Complete",
+    "btn_completing": "Completing..."
+  },
   "errors": {
     "not_found_title": "Page not found",
     "not_found_desc": "The page you're looking for doesn't exist or has been moved.",

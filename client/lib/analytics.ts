@@ -35,6 +35,10 @@ export const analytics = {
   timerStopped: () => trackEvent("timer_stopped"),
   manualTimeEntryCreated: () => trackEvent("manual_time_entry_created"),
 
+  // Onboarding
+  onboardingCompleted: (role: string) =>
+    trackEvent("onboarding_completed", { role }),
+
   // Subscription
   checkoutStarted: (priceId: string) =>
     trackEvent("checkout_started", { price_id: priceId }),

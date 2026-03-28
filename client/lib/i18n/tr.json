@@ -624,6 +624,28 @@
     "lang_en": "English",
     "lang_tr": "Türkçe"
   },
+  "onboarding": {
+    "step_of": "Adım {{step}} / {{total}}",
+    "step_complete": "%{{pct}} tamamlandı",
+    "step1_title": "Hoş geldin, {{name}}! 👋",
+    "step1_desc": "Flowbill'i senin için kişiselleştirelim",
+    "step1_label": "Ne tür bir işle ilgileniyorsun?",
+    "role_freelancer": "Serbest Çalışan",
+    "role_freelancer_desc": "Bağımsız profesyonel",
+    "role_agency": "Ajans",
+    "role_agency_desc": "Ekiple çalışıyorum",
+    "step2_title": "Temel Ayarlar",
+    "step2_desc": "Saat dilimi, para birimi ve saatlik ücretini ayarla",
+    "timezone": "Saat Dilimi",
+    "timezone_placeholder": "Saat dilimi seç",
+    "currency": "Para Birimi",
+    "currency_placeholder": "Para birimi seç",
+    "hourly_rate": "Saatlik Ücret (opsiyonel)",
+    "hourly_rate_hint": "Projeler için varsayılan saatlik ücretin olacak. Daha sonra değiştirebilirsin.",
+    "btn_back": "Geri",
+    "btn_complete": "Tamamla",
+    "btn_completing": "Tamamlanıyor..."
+  },
   "errors": {
     "not_found_title": "Sayfa bulunamadı",
     "not_found_desc": "Aradığın sayfa mevcut değil veya taşınmış olabilir.",

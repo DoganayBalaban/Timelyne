@@ -18,10 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { analytics } from "@/lib/analytics";
 import { useUpdateMe, useUser } from "@/lib/hooks/useAuth";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   ArrowLeft,
-  ArrowRight,
   Building2,
   Check,
   Loader2,
@@ -31,65 +32,79 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// Timezone data
 const timezones = [
   { value: "Europe/Istanbul", label: "Istanbul (UTC+3)" },
-  { value: "Europe/London", label: "London (UTC+0)" },
-  { value: "Europe/Paris", label: "Paris (UTC+1)" },
-  { value: "Europe/Berlin", label: "Berlin (UTC+1)" },
-  { value: "America/New_York", label: "New York (UTC-5)" },
-  { value: "America/Los_Angeles", label: "Los Angeles (UTC-8)" },
-  { value: "Asia/Tokyo", label: "Tokyo (UTC+9)" },
+  { value: "Europe/London", label: "London (UTC+0/+1)" },
+  { value: "Europe/Paris", label: "Paris (UTC+1/+2)" },
+  { value: "Europe/Berlin", label: "Berlin (UTC+1/+2)" },
+  { value: "Europe/Rome", label: "Rome (UTC+1/+2)" },
+  { value: "Europe/Madrid", label: "Madrid (UTC+1/+2)" },
+  { value: "Europe/Amsterdam", label: "Amsterdam (UTC+1/+2)" },
+  { value: "Europe/Warsaw", label: "Warsaw (UTC+1/+2)" },
+  { value: "Europe/Moscow", label: "Moscow (UTC+3)" },
+  { value: "America/New_York", label: "New York (UTC-5/-4)" },
+  { value: "America/Chicago", label: "Chicago (UTC-6/-5)" },
+  { value: "America/Denver", label: "Denver (UTC-7/-6)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (UTC-8/-7)" },
+  { value: "America/Toronto", label: "Toronto (UTC-5/-4)" },
+  { value: "America/Vancouver", label: "Vancouver (UTC-8/-7)" },
+  { value: "America/Sao_Paulo", label: "São Paulo (UTC-3)" },
+  { value: "America/Mexico_City", label: "Mexico City (UTC-6/-5)" },
+  { value: "America/Buenos_Aires", label: "Buenos Aires (UTC-3)" },
   { value: "Asia/Dubai", label: "Dubai (UTC+4)" },
+  { value: "Asia/Kolkata", label: "Mumbai/Delhi (UTC+5:30)" },
+  { value: "Asia/Dhaka", label: "Dhaka (UTC+6)" },
+  { value: "Asia/Bangkok", label: "Bangkok (UTC+7)" },
+  { value: "Asia/Singapore", label: "Singapore (UTC+8)" },
+  { value: "Asia/Shanghai", label: "Beijing/Shanghai (UTC+8)" },
+  { value: "Asia/Tokyo", label: "Tokyo (UTC+9)" },
+  { value: "Asia/Seoul", label: "Seoul (UTC+9)" },
+  { value: "Australia/Sydney", label: "Sydney (UTC+10/+11)" },
+  { value: "Australia/Melbourne", label: "Melbourne (UTC+10/+11)" },
+  { value: "Pacific/Auckland", label: "Auckland (UTC+12/+13)" },
+  { value: "Africa/Cairo", label: "Cairo (UTC+2)" },
+  { value: "Africa/Johannesburg", label: "Johannesburg (UTC+2)" },
+  { value: "Africa/Lagos", label: "Lagos (UTC+1)" },
   { value: "UTC", label: "UTC" },
 ];
 
-// Currency data
 const currencies = [
-  { value: "TRY", label: "₺ Turkish Lira (TRY)" },
   { value: "USD", label: "$ US Dollar (USD)" },
   { value: "EUR", label: "€ Euro (EUR)" },
   { value: "GBP", label: "£ British Pound (GBP)" },
+  { value: "TRY", label: "₺ Turkish Lira (TRY)" },
 ];
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useUser();
   const updateMe = useUpdateMe();
+  const { t } = useTranslation();
 
   const [step, setStep] = useState(1);
   const totalSteps = 2;
 
-  // Form state
   const [role, setRole] = useState<"freelancer" | "agency">("freelancer");
   const [timezone, setTimezone] = useState("Europe/Istanbul");
   const [currency, setCurrency] = useState("USD");
   const [hourlyRate, setHourlyRate] = useState("");
 
-  // Redirect if already completed onboarding
   useEffect(() => {
     if (!userLoading && user?.is_onboarding_completed) {
       router.push("/dashboard");
     }
   }, [user, userLoading, router]);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!userLoading && !user) {
       router.push("/login");
     }
   }, [user, userLoading, router]);
 
-  const handleNext = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
+  const handleRoleSelect = (selected: "freelancer" | "agency") => {
+    setRole(selected);
+    // Auto-advance after short delay for visual feedback
+    setTimeout(() => setStep(2), 300);
   };
 
   const handleComplete = () => {
@@ -103,6 +118,7 @@ export default function OnboardingPage() {
       },
       {
         onSuccess: () => {
+          analytics.onboardingCompleted(role);
           router.push("/dashboard");
         },
       }
@@ -116,6 +132,10 @@ export default function OnboardingPage() {
       </div>
     );
   }
+
+  const currencySymbol: Record<string, string> = {
+    USD: "$", EUR: "€", GBP: "£", TRY: "₺",
+  };
 
   const progressValue = (step / totalSteps) * 100;
 
@@ -133,21 +153,22 @@ export default function OnboardingPage() {
         />
       </div>
 
-      {/* Header with progress */}
+      {/* Progress */}
       <div className="w-full max-w-2xl mx-auto px-4 pb-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Step {step} of {totalSteps}</span>
-            <span>{Math.round(progressValue)}% complete</span>
+            <span>{t("onboarding.step_of", { step, total: totalSteps })}</span>
+            <span>{t("onboarding.step_complete", { pct: Math.round(progressValue) })}</span>
           </div>
           <Progress value={progressValue} className="h-2" />
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Content */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl">
-          {/* Step 1: Business Type */}
+
+          {/* Step 1: Role */}
           {step === 1 && (
             <Card className="border-0 shadow-2xl bg-card/80 backdrop-blur-sm">
               <CardHeader className="text-center space-y-4 pb-8">
@@ -156,94 +177,53 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <CardTitle className="text-2xl md:text-3xl font-bold">
-                    Welcome, {user?.first_name}! 👋
+                    {t("onboarding.step1_title", { name: user?.first_name ?? "" })}
                   </CardTitle>
                   <CardDescription className="text-base mt-2">
-                    Help us personalize Flowbill for you
+                    {t("onboarding.step1_desc")}
                   </CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <Label className="text-base font-medium mb-4 block">
-                    What type of work do you do?
-                  </Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Label className="text-base font-medium block">
+                  {t("onboarding.step1_label")}
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(["freelancer", "agency"] as const).map((r) => (
                     <button
+                      key={r}
                       type="button"
-                      onClick={() => setRole("freelancer")}
+                      onClick={() => handleRoleSelect(r)}
                       className={`p-6 rounded-xl border-2 transition-all duration-200 text-left ${
-                        role === "freelancer"
+                        role === r
                           ? "border-primary bg-primary/5 shadow-lg"
                           : "border-border hover:border-primary/50 hover:bg-muted/50"
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                            role === "freelancer"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          }`}
-                        >
-                          <User className="h-6 w-6" />
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          role === r ? "bg-primary text-primary-foreground" : "bg-muted"
+                        }`}>
+                          {r === "freelancer" ? <User className="h-6 w-6" /> : <Building2 className="h-6 w-6" />}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-lg">Freelancer</h3>
+                          <h3 className="font-semibold text-lg">
+                            {t(`onboarding.role_${r}`)}
+                          </h3>
                           <p className="text-sm text-muted-foreground">
-                            Independent professional
+                            {t(`onboarding.role_${r}_desc`)}
                           </p>
                         </div>
-                        {role === "freelancer" && (
-                          <Check className="h-5 w-5 text-primary ml-auto" />
-                        )}
+                        {role === r && <Check className="h-5 w-5 text-primary ml-auto" />}
                       </div>
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setRole("agency")}
-                      className={`p-6 rounded-xl border-2 transition-all duration-200 text-left ${
-                        role === "agency"
-                          ? "border-primary bg-primary/5 shadow-lg"
-                          : "border-border hover:border-primary/50 hover:bg-muted/50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                            role === "agency"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          }`}
-                        >
-                          <Building2 className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">Agency</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Working with a team
-                          </p>
-                        </div>
-                        {role === "agency" && (
-                          <Check className="h-5 w-5 text-primary ml-auto" />
-                        )}
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4">
-                  <Button onClick={handleNext} size="lg" className="gap-2">
-                    Continue
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Step 2: Basic Settings */}
+          {/* Step 2: Settings */}
           {step === 2 && (
             <Card className="border-0 shadow-2xl bg-card/80 backdrop-blur-sm">
               <CardHeader className="text-center space-y-4 pb-8">
@@ -252,22 +232,22 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <CardTitle className="text-2xl md:text-3xl font-bold">
-                    Basic Settings
+                    {t("onboarding.step2_title")}
                   </CardTitle>
                   <CardDescription className="text-base mt-2">
-                    Set your timezone, currency and hourly rate
+                    {t("onboarding.step2_desc")}
                   </CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="timezone">Timezone</Label>
+                    <Label htmlFor="timezone">{t("onboarding.timezone")}</Label>
                     <Select value={timezone} onValueChange={setTimezone}>
                       <SelectTrigger id="timezone">
-                        <SelectValue placeholder="Select timezone" />
+                        <SelectValue placeholder={t("onboarding.timezone_placeholder")} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-64">
                         {timezones.map((tz) => (
                           <SelectItem key={tz.value} value={tz.value}>
                             {tz.label}
@@ -278,10 +258,10 @@ export default function OnboardingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="currency">Currency</Label>
+                    <Label htmlFor="currency">{t("onboarding.currency")}</Label>
                     <Select value={currency} onValueChange={setCurrency}>
                       <SelectTrigger id="currency">
-                        <SelectValue placeholder="Select currency" />
+                        <SelectValue placeholder={t("onboarding.currency_placeholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {currencies.map((c) => (
@@ -295,9 +275,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="hourlyRate">
-                    Hourly Rate (optional)
-                  </Label>
+                  <Label htmlFor="hourlyRate">{t("onboarding.hourly_rate")}</Label>
                   <div className="relative">
                     <Input
                       id="hourlyRate"
@@ -308,29 +286,23 @@ export default function OnboardingPage() {
                       className="pl-8"
                     />
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      {currency === "TRY"
-                        ? "₺"
-                        : currency === "USD"
-                        ? "$"
-                        : currency === "EUR"
-                        ? "€"
-                        : "£"}
+                      {currencySymbol[currency] ?? "$"}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    This will be your default hourly rate for projects. You can change it later.
+                    {t("onboarding.hourly_rate_hint")}
                   </p>
                 </div>
 
                 <div className="flex justify-between pt-4">
                   <Button
-                    onClick={handleBack}
+                    onClick={() => setStep(1)}
                     variant="outline"
                     size="lg"
                     className="gap-2"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Back
+                    {t("onboarding.btn_back")}
                   </Button>
                   <Button
                     onClick={handleComplete}
@@ -341,11 +313,11 @@ export default function OnboardingPage() {
                     {updateMe.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Completing...
+                        {t("onboarding.btn_completing")}
                       </>
                     ) : (
                       <>
-                        Complete
+                        {t("onboarding.btn_complete")}
                         <Check className="h-4 w-4" />
                       </>
                     )}
@@ -357,7 +329,6 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="py-4 text-center text-sm text-muted-foreground">
         <p>© 2026 Flowbill. All rights reserved.</p>
       </div>
