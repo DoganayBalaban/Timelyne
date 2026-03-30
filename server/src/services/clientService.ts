@@ -69,9 +69,40 @@ export class ClientService {
       revenueRows.map((r) => [r.client_id, r._sum.total?.toNumber() ?? 0]),
     );
 
+    // Compute last_activity_at = max(latest invoice updated_at, latest project updated_at)
+    const [latestInvoices, latestProjects] = await Promise.all([
+      prisma.invoice.groupBy({
+        by: ["client_id"],
+        where: { client_id: { in: clientIds }, user_id: userId, deleted_at: null },
+        _max: { updated_at: true },
+      }),
+      prisma.project.groupBy({
+        by: ["client_id"],
+        where: { client_id: { in: clientIds }, user_id: userId, deleted_at: null },
+        _max: { updated_at: true },
+      }),
+    ]);
+
+    const invoiceActivityMap = new Map(latestInvoices.map((r) => [r.client_id, r._max.updated_at as Date | null]));
+    const projectActivityMap = new Map(latestProjects.map((r) => [r.client_id, r._max.updated_at as Date | null]));
+
+    const pickLatest = (a: Date | null, b: Date | null): Date | null => {
+      if (!a) return b;
+      if (!b) return a;
+      return a.getTime() >= b.getTime() ? a : b;
+    };
+
+    const activityMap = new Map<string, Date | null>();
+    for (const id of clientIds) {
+      const inv: Date | null = invoiceActivityMap.get(id) ?? null;
+      const proj: Date | null = projectActivityMap.get(id) ?? null;
+      activityMap.set(id, pickLatest(inv, proj));
+    }
+
     const clientsWithRevenue = clients.map((c) => ({
       ...c,
       total_revenue: revenueMap.get(c.id) ?? 0,
+      last_activity_at: activityMap.get(c.id) ?? null,
     }));
 
     return {

@@ -266,7 +266,7 @@ export class TimerService {
   }
 
   static async getTimeReport(userId: string, query: GetTimeReportQueryInput) {
-    const { start_date, end_date, project_id } = query;
+    const { start_date, end_date, project_id, group_by } = query;
 
     const end = end_date ? new Date(end_date) : new Date();
     const start = start_date
@@ -300,6 +300,7 @@ export class TimerService {
         duration_minutes: true,
         billable: true,
         hourly_rate: true,
+        date: true,
       },
     });
 
@@ -308,6 +309,7 @@ export class TimerService {
     let totalRevenue = 0;
 
     const projectMap: Record<string, any> = {};
+    const dayMap: Record<string, { date: string; minutes: number; billable_minutes: number; revenue: number }> = {};
 
     for (const entry of entries) {
       const minutes = entry.duration_minutes ?? 0;
@@ -329,21 +331,38 @@ export class TimerService {
           revenue: 0,
         };
       }
-
       projectMap[entry.project_id].total_minutes += minutes;
-
       if (entry.billable) {
         projectMap[entry.project_id].billable_minutes += minutes;
         projectMap[entry.project_id].revenue += revenue;
       }
+
+      // Day aggregation
+      if (group_by === "day") {
+        const dateKey = entry.date.toISOString().slice(0, 10);
+        if (!dayMap[dateKey]) {
+          dayMap[dateKey] = { date: dateKey, minutes: 0, billable_minutes: 0, revenue: 0 };
+        }
+        dayMap[dateKey].minutes += minutes;
+        if (entry.billable) {
+          dayMap[dateKey].billable_minutes += minutes;
+          dayMap[dateKey].revenue += revenue;
+        }
+      }
     }
 
-    return {
+    const result: any = {
       total_minutes: totalMinutes,
       total_billable_minutes: totalBillableMinutes,
       total_revenue: Number(totalRevenue.toFixed(2)),
       projects: Object.values(projectMap),
     };
+
+    if (group_by === "day") {
+      result.days = Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    return result;
   }
 
   static async getTimeEntryById(userId: string, timerId: string) {

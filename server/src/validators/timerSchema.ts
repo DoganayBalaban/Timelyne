@@ -41,6 +41,7 @@ export const getTimeReportQuerySchema = z.object({
   client_id: z.uuid().optional(),
   billable: z.coerce.boolean().optional(),
   invoiced: z.coerce.boolean().optional(),
+  group_by: z.enum(["day"]).optional(),
   sort: z
     .enum(["started_at", "duration_minutes", "project_id"])
     .default("started_at"),

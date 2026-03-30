@@ -14,6 +14,7 @@ export interface Client {
   hourly_rate: number | null;
   total_revenue: number;
   total_paid: number;
+  last_activity_at: string | null;
   portal_enabled: boolean;
   portal_token: string | null;
   created_at: string;
