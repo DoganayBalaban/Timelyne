@@ -1,6 +1,7 @@
 "use client";
 
 import { dashboardApi } from "@/lib/api/dashboard";
+import { expensesApi } from "@/lib/api/expenses";
 import { useQuery } from "@tanstack/react-query";
 
 const FIVE_MINUTES = 5 * 60 * 1000;
@@ -48,6 +49,18 @@ export function useOverdueInvoices(page = 1, limit = 10) {
     queryKey: ["dashboard", "overdue-invoices", page, limit],
     queryFn: () => dashboardApi.getOverdueInvoices(page, limit),
     select: (res) => res.data,
+    staleTime: FIVE_MINUTES,
+    gcTime: FIVE_MINUTES * 2,
+  });
+}
+
+// ─── Expense Stats (for dashboard overview) ─────────────────────────────────
+
+export function useDashboardExpenseStats() {
+  return useQuery({
+    queryKey: ["dashboard", "expense-stats"],
+    queryFn: () => expensesApi.getStats(),
+    select: (res) => res.stats,
     staleTime: FIVE_MINUTES,
     gcTime: FIVE_MINUTES * 2,
   });

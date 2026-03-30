@@ -6,6 +6,7 @@ import {
   ExpensesQueryParams,
   UpdateExpenseData,
 } from "@/lib/api/expenses";
+import { analytics } from "@/lib/analytics";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useExpenses(params?: ExpensesQueryParams) {
@@ -21,6 +22,7 @@ export function useExpenseStats(params?: { start_date?: string; end_date?: strin
     queryKey: ["expenses", "stats", params],
     queryFn: () => expensesApi.getStats(params),
     select: (data) => data.stats,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -30,6 +32,7 @@ export function useCreateExpense() {
     mutationFn: (data: CreateExpenseData) => expensesApi.createExpense(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      analytics.expenseCreated();
     },
   });
 }

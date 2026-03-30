@@ -7,6 +7,7 @@ import {
   UpdateTimeEntryData,
   timeEntriesApi,
 } from "@/lib/api/timeEntries";
+import { analytics } from "@/lib/analytics";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -29,6 +30,7 @@ export function useTimeEntry(id: string) {
     queryFn: () => timeEntriesApi.getById(id),
     select: (res) => res.data,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -38,6 +40,7 @@ export function useTimeReport(params?: TimeReportParams) {
     queryKey: ["time-entries", "report", params],
     queryFn: () => timeEntriesApi.getReport(params),
     select: (res) => res.data,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -50,6 +53,7 @@ export function useStartTimer() {
     mutationFn: (data: StartTimerData) => timeEntriesApi.startTimer(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["time-entries"] });
+      analytics.timerStarted();
     },
   });
 }
@@ -61,6 +65,7 @@ export function useStopTimer() {
     mutationFn: (id: string) => timeEntriesApi.stopTimer(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["time-entries"] });
+      analytics.timerStopped();
     },
   });
 }
@@ -73,6 +78,7 @@ export function useCreateManualTimeEntry() {
       timeEntriesApi.createManual(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["time-entries"] });
+      analytics.manualTimeEntryCreated();
     },
   });
 }

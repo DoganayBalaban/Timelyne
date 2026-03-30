@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { redis } from "../config/redis";
 import { AppError } from "../utils/appError";
 import { prisma } from "../utils/prisma";
 import {
@@ -53,8 +54,13 @@ export class ExpenseService {
     return expense;
   }
 
+  static async invalidateStatsCache(userId: string) {
+    const keys = await redis.keys(`expense:stats:${userId}:*`);
+    if (keys.length > 0) await redis.del(...keys);
+  }
+
   static async createExpense(userId: string, data: CreateExpenseInput) {
-    return prisma.expense.create({
+    const expense = await prisma.expense.create({
       data: {
         user_id: userId,
         project_id: data.project_id,
@@ -69,6 +75,8 @@ export class ExpenseService {
         project: { select: { id: true, name: true, color: true } },
       },
     });
+    await ExpenseService.invalidateStatsCache(userId);
+    return expense;
   }
 
   static async updateExpense(userId: string, expenseId: string, data: UpdateExpenseInput) {
@@ -77,7 +85,7 @@ export class ExpenseService {
     });
     if (!existing) throw new AppError("Expense not found", 404);
 
-    return prisma.expense.update({
+    const expense = await prisma.expense.update({
       where: { id: expenseId },
       data: {
         ...(data.project_id !== undefined && { project_id: data.project_id }),
@@ -92,6 +100,8 @@ export class ExpenseService {
         project: { select: { id: true, name: true, color: true } },
       },
     });
+    await ExpenseService.invalidateStatsCache(userId);
+    return expense;
   }
 
   static async deleteExpense(userId: string, expenseId: string) {
@@ -100,10 +110,12 @@ export class ExpenseService {
     });
     if (!existing) throw new AppError("Expense not found", 404);
 
-    return prisma.expense.update({
+    const expense = await prisma.expense.update({
       where: { id: expenseId },
       data: { deleted_at: new Date() },
     });
+    await ExpenseService.invalidateStatsCache(userId);
+    return expense;
   }
 
   static async updateReceiptUrl(userId: string, expenseId: string, receipt_url: string) {
@@ -119,6 +131,11 @@ export class ExpenseService {
   }
 
   static async getStats(userId: string, start_date?: string, end_date?: string) {
+    const cacheKey = `expense:stats:${userId}:${start_date ?? ""}:${end_date ?? ""}`;
+
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
     const dateFilter: Prisma.DateTimeFilter = {
       ...(start_date && { gte: new Date(start_date) }),
       ...(end_date && { lte: new Date(end_date) }),
@@ -161,7 +178,7 @@ export class ExpenseService {
       count: g._count.id,
     }));
 
-    return {
+    const result = {
       total_expenses: totalExpenses,
       expense_count: expenseAgg._count.id,
       tax_deductible_total: taxDeductibleTotal,
@@ -169,5 +186,9 @@ export class ExpenseService {
       net_profit: netProfit,
       by_category: categoryBreakdown,
     };
+
+    await redis.set(cacheKey, JSON.stringify(result), "EX", 300);
+
+    return result;
   }
 }

@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   Building2,
   Download,
@@ -47,29 +48,31 @@ function formatDate(dateStr: string | null | undefined) {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   if (status === "paid") {
     return (
       <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400">
-        Paid
+        {t("portal.status_paid")}
       </Badge>
     );
   }
   if (status === "overdue") {
     return (
       <Badge className="bg-red-100 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
-        Overdue
+        {t("portal.status_overdue")}
       </Badge>
     );
   }
   return (
     <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
-      Sent
+      {t("portal.status_sent")}
     </Badge>
   );
 }
 
 export default function PortalDashboardPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [client, setClient] = useState<PortalClient | null>(null);
   const [invoices, setInvoices] = useState<PortalInvoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,10 +125,9 @@ export default function PortalDashboardPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-10 max-w-md w-full text-center space-y-4">
           <XCircle className="mx-auto h-12 w-12 text-red-500" />
-          <h1 className="text-xl font-semibold">Session Expired</h1>
+          <h1 className="text-xl font-semibold">{t("portal.session_expired")}</h1>
           <p className="text-muted-foreground text-sm">
-            Your session has expired or is no longer valid. Please ask your
-            freelancer to send you a new magic link.
+            {t("portal.session_expired_desc")}
           </p>
         </div>
       </div>
@@ -137,10 +139,9 @@ export default function PortalDashboardPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-10 max-w-md w-full text-center space-y-4">
           <FileText className="mx-auto h-12 w-12 text-slate-400" />
-          <h1 className="text-xl font-semibold">You have been logged out</h1>
+          <h1 className="text-xl font-semibold">{t("portal.logged_out_title")}</h1>
           <p className="text-muted-foreground text-sm">
-            Thank you for using the Client Portal. To access your invoices again,
-            ask your freelancer to send you a new link.
+            {t("portal.logged_out_desc")}
           </p>
         </div>
       </div>
@@ -163,7 +164,7 @@ export default function PortalDashboardPage() {
       <div className="bg-slate-900 dark:bg-slate-950 text-white px-6 py-5 flex items-center justify-between">
         <div>
           <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">
-            Client Portal
+            {t("portal.client_portal")}
           </p>
           <h1 className="text-xl font-bold">{client?.name}</h1>
           {client?.company && (
@@ -180,7 +181,7 @@ export default function PortalDashboardPage() {
           onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Log out
+          {t("portal.logout")}
         </Button>
       </div>
 
@@ -189,7 +190,7 @@ export default function PortalDashboardPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Invoices</CardDescription>
+              <CardDescription>{t("portal.stat_total_invoices")}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{totalInvoices}</p>
@@ -197,7 +198,7 @@ export default function PortalDashboardPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Pending Amount</CardDescription>
+              <CardDescription>{t("portal.stat_pending")}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
@@ -207,7 +208,7 @@ export default function PortalDashboardPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Paid Amount</CardDescription>
+              <CardDescription>{t("portal.stat_paid")}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -222,29 +223,34 @@ export default function PortalDashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Your Invoices
+              {t("portal.invoices_title")}
             </CardTitle>
             <CardDescription>
-              {totalInvoices} {totalInvoices === 1 ? "invoice" : "invoices"} found
+              {t(
+                totalInvoices === 1
+                  ? "portal.invoices_count_one"
+                  : "portal.invoices_count_other",
+                { count: totalInvoices }
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {invoices.length === 0 ? (
               <div className="text-center py-12 space-y-2">
                 <FileText className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                <p className="text-muted-foreground">No invoices available yet.</p>
+                <p className="text-muted-foreground">{t("portal.no_invoices")}</p>
               </div>
             ) : (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Invoice #</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead className="hidden md:table-cell">Issue Date</TableHead>
-                      <TableHead className="hidden md:table-cell">Due Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>{t("portal.col_invoice")}</TableHead>
+                      <TableHead>{t("portal.col_status")}</TableHead>
+                      <TableHead>{t("portal.col_amount")}</TableHead>
+                      <TableHead className="hidden md:table-cell">{t("portal.col_issue_date")}</TableHead>
+                      <TableHead className="hidden md:table-cell">{t("portal.col_due_date")}</TableHead>
+                      <TableHead className="text-right">{t("portal.col_actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -274,7 +280,7 @@ export default function PortalDashboardPage() {
                           <div className="flex items-center justify-end gap-2">
                             <Button variant="ghost" size="sm" asChild>
                               <Link href={`/portal/invoices/${invoice.id}`}>
-                                View
+                                {t("portal.btn_view")}
                               </Link>
                             </Button>
                             {invoice.pdf_url && (
@@ -304,7 +310,7 @@ export default function PortalDashboardPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground pb-6">
-          Powered by <strong>Flowbill</strong>
+          {t("portal.powered_by")} <strong>Flowbill</strong>
         </p>
       </div>
     </div>

@@ -6,6 +6,7 @@ import {
     ProjectsQueryParams,
     UpdateProjectData,
 } from "@/lib/api/projects";
+import { analytics } from "@/lib/analytics";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // List projects with pagination/search/sort/filter
@@ -36,6 +37,7 @@ export function useCreateProject() {
     mutationFn: (data: CreateProjectData) => projectsApi.createProject(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      analytics.projectCreated();
     },
   });
 }
@@ -84,6 +86,7 @@ export function useProjectTimeEntries(id: string) {
     queryFn: () => projectsApi.getProjectTimeEntries(id),
     select: (data) => data.timeEntries,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -94,6 +97,7 @@ export function useProjectStats(id: string) {
     queryFn: () => projectsApi.getProjectStats(id),
     select: (data) => data.stats,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -104,6 +108,7 @@ export function useProjectAttachments(id: string) {
     queryFn: () => projectsApi.getProjectAttachments(id),
     select: (data) => data.attachments,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

@@ -6,6 +6,7 @@ import {
   CreateClientData,
   UpdateClientData,
 } from "@/lib/api/clients";
+import { analytics } from "@/lib/analytics";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // ─── List ──────────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ export function useCreateClient() {
     mutationFn: (data: CreateClientData) => clientsApi.createClient(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+      analytics.clientCreated();
     },
   });
 }
@@ -74,6 +76,7 @@ export function useClientProjects(id: string) {
     queryFn: () => clientsApi.getClientProjects(id),
     select: (res) => res.data,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -83,6 +86,7 @@ export function useClientInvoices(id: string) {
     queryFn: () => clientsApi.getClientInvoices(id),
     select: (res) => res.data,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -92,20 +96,20 @@ export function useClientRevenue(id: string) {
     queryFn: () => clientsApi.getClientRevenue(id),
     select: (res) => res.data,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-// New — mirrors useProjectStats pattern
 export function useClientStats(id: string) {
   return useQuery({
     queryKey: ["clients", id, "stats"],
     queryFn: () => clientsApi.getClientStats(id),
     select: (res) => res.data,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-// New — mirrors useProjectTimeEntries pattern
 export function useClientTimeEntries(
   id: string,
   params?: { page?: number; limit?: number },
@@ -115,5 +119,6 @@ export function useClientTimeEntries(
     queryFn: () => clientsApi.getClientTimeEntries(id, params),
     select: (res) => res.data,
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }

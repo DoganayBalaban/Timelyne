@@ -7,6 +7,7 @@ import {
   MarkAsPaidData,
   UpdateInvoiceData,
 } from "@/lib/api/invoices";
+import { analytics } from "@/lib/analytics";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // ── List invoices ──────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ export function useInvoiceStats(start?: string, end?: string) {
     queryKey: ["invoices", "stats", start, end],
     queryFn: () => invoicesApi.getInvoiceStats(start, end),
     select: (data) => data.data,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -48,8 +50,9 @@ export function useCreateInvoice() {
 
   return useMutation({
     mutationFn: (data: CreateInvoiceData) => invoicesApi.createInvoice(data),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      analytics.invoiceCreated(variables.currency ?? "USD");
     },
   });
 }
@@ -102,8 +105,8 @@ export function useDownloadPdf() {
   return useMutation({
     mutationFn: (id: string) => invoicesApi.downloadPdf(id),
     onSuccess: (data) => {
-      // Open the pre-signed URL in a new tab
       window.open(data.download_url, "_blank");
+      analytics.invoicePdfDownloaded();
     },
   });
 }
@@ -118,6 +121,7 @@ export function useSendInvoiceEmail() {
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoices", id] });
+      analytics.invoiceEmailSent();
     },
   });
 }
@@ -133,6 +137,7 @@ export function useMarkAsPaid() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoices", variables.id] });
+      analytics.invoiceMarkedPaid();
     },
   });
 }
@@ -146,6 +151,7 @@ export function useCreatePaymentLink() {
     mutationFn: (id: string) => invoicesApi.createPaymentLink(id),
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["invoices", id] });
+      analytics.paymentLinkCreated();
     },
   });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { ExpenseOverview } from "@/components/dashboard/expense-overview";
 import { OverdueAlerts } from "@/components/dashboard/overdue-alerts";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useResendVerification, useUser } from "@/lib/hooks/useAuth";
 import {
+  useDashboardExpenseStats,
   useDashboardStats,
   useOverdueInvoices,
   useRecentActivity,
@@ -32,6 +34,7 @@ export default function DashboardPage() {
   const revenue = useRevenueChart();
   const activity = useRecentActivity(10);
   const overdue = useOverdueInvoices();
+  const expenseStats = useDashboardExpenseStats();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -150,8 +153,15 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <StatsCards data={stats.data} isLoading={stats.isLoading} />
 
-      {/* Revenue Chart (full width) */}
-      <RevenueChart data={revenue.data} isLoading={revenue.isLoading} />
+      {/* Charts row: Revenue + Expenses */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <RevenueChart data={revenue.data} isLoading={revenue.isLoading} />
+        </div>
+        <div className="lg:col-span-2">
+          <ExpenseOverview data={expenseStats.data} isLoading={expenseStats.isLoading} />
+        </div>
+      </div>
 
       {/* Bottom Grid: Left (Overdue + Activity) | Right (Top Clients) */}
       <div className="grid gap-6 lg:grid-cols-5">

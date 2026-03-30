@@ -47,6 +47,18 @@ import {
   useUpdateTimeEntry,
 } from "@/lib/hooks/useTimeEntries";
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  ArrowDown,
+  ArrowUp,
+  Calendar,
   Clock,
   Loader2,
   Play,
@@ -55,7 +67,7 @@ import {
   Timer,
   TrendingUp,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -423,6 +435,261 @@ function ManualEntryDialog({
   );
 }
 
+// ─── Summary Tab ──────────────────────────────────────────────────────────────
+
+function getWeekRange(offsetWeeks = 0) {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7) + offsetWeeks * 7);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { start: monday, end: sunday };
+}
+
+function getMonthRange(offsetMonths = 0) {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() + offsetMonths, 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + offsetMonths + 1, 0);
+  last.setHours(23, 59, 59, 999);
+  return { start: first, end: last };
+}
+
+function toDateStr(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function pctChange(current: number, previous: number) {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+function CompareCard({
+  label,
+  currentMinutes,
+  previousMinutes,
+  currentRevenue,
+  previousRevenue,
+  compareLabel,
+}: {
+  label: string;
+  currentMinutes: number;
+  previousMinutes: number;
+  currentRevenue: number;
+  previousRevenue: number;
+  compareLabel: string;
+}) {
+  const minutesPct = pctChange(currentMinutes, previousMinutes);
+  const isUp = minutesPct >= 0;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardDescription className="text-xs uppercase tracking-wide">{label}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        <p className="text-2xl font-bold">{minutesToLabel(currentMinutes)}</p>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          {minutesPct !== 0 && (
+            isUp
+              ? <ArrowUp className="h-3 w-3 text-emerald-500" />
+              : <ArrowDown className="h-3 w-3 text-red-500" />
+          )}
+          <span className={isUp ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
+            {isUp ? "+" : ""}{minutesPct}%
+          </span>
+          <span>{compareLabel}</span>
+        </div>
+        {currentRevenue > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {formatCurrency(currentRevenue)}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SummaryTab() {
+  const [view, setView] = useState<"week" | "month">("week");
+  const { t } = useTranslation();
+
+  const weekCurrent = useMemo(() => getWeekRange(0), []);
+  const weekPrev = useMemo(() => getWeekRange(-1), []);
+  const monthCurrent = useMemo(() => getMonthRange(0), []);
+  const monthPrev = useMemo(() => getMonthRange(-1), []);
+
+  const { data: thisWeek, isLoading: l1 } = useTimeReport({
+    start_date: toDateStr(weekCurrent.start),
+    end_date: toDateStr(weekCurrent.end),
+    group_by: "day",
+  });
+  const { data: lastWeek, isLoading: l2 } = useTimeReport({
+    start_date: toDateStr(weekPrev.start),
+    end_date: toDateStr(weekPrev.end),
+  });
+  const { data: thisMonth, isLoading: l3 } = useTimeReport({
+    start_date: toDateStr(monthCurrent.start),
+    end_date: toDateStr(monthCurrent.end),
+    group_by: "day",
+  });
+  const { data: lastMonth, isLoading: l4 } = useTimeReport({
+    start_date: toDateStr(monthPrev.start),
+    end_date: toDateStr(monthPrev.end),
+  });
+
+  const isLoading = l1 || l2 || l3 || l4;
+
+  // Build bar chart data for weekly view (Mon–Sun)
+  const weekDayNames = useMemo(() => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], []);
+  const weekChartData = useMemo(() => {
+    const dayMap: Record<string, number> = {};
+    thisWeek?.days?.forEach((d) => {
+      dayMap[d.date] = d.minutes;
+    });
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekCurrent.start);
+      d.setDate(d.getDate() + i);
+      const key = toDateStr(d);
+      return {
+        name: weekDayNames[i] ?? String(i + 1),
+        hours: Number(((dayMap[key] ?? 0) / 60).toFixed(1)),
+      };
+    });
+  }, [thisWeek, weekCurrent]);
+
+  // Build bar chart data for monthly view (per day)
+  const monthChartData = useMemo(() => {
+    const dayMap: Record<string, number> = {};
+    thisMonth?.days?.forEach((d) => {
+      dayMap[d.date] = d.minutes;
+    });
+    const days = monthCurrent.end.getDate();
+    return Array.from({ length: days }, (_, i) => {
+      const d = new Date(monthCurrent.start);
+      d.setDate(d.getDate() + i);
+      const key = toDateStr(d);
+      return {
+        name: String(i + 1),
+        hours: Number(((dayMap[key] ?? 0) / 60).toFixed(1)),
+      };
+    });
+  }, [thisMonth, monthCurrent]);
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28" />
+        ))}
+      </div>
+    );
+  }
+
+  const chartData = view === "week" ? weekChartData : monthChartData;
+  const currentData = view === "week" ? thisWeek : thisMonth;
+  const prevData = view === "week" ? lastWeek : lastMonth;
+  const hasData = (currentData?.total_minutes ?? 0) > 0;
+
+  return (
+    <div className="space-y-4">
+      {/* View toggle */}
+      <Tabs value={view} onValueChange={(v) => setView(v as "week" | "month")}>
+        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+          <TabsTrigger value="week">{t("time_entries.this_week")}</TabsTrigger>
+          <TabsTrigger value="month">{t("time_entries.this_month")}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Comparison cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <CompareCard
+          label={view === "week" ? t("time_entries.this_week") : t("time_entries.this_month")}
+          currentMinutes={currentData?.total_minutes ?? 0}
+          previousMinutes={prevData?.total_minutes ?? 0}
+          currentRevenue={currentData?.total_revenue ?? 0}
+          previousRevenue={prevData?.total_revenue ?? 0}
+          compareLabel={view === "week" ? t("time_entries.vs_last_week") : t("time_entries.vs_last_month")}
+        />
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs uppercase tracking-wide">
+              {t("time_entries.billable_duration")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {minutesToLabel(currentData?.total_billable_minutes ?? 0)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {currentData && currentData.total_minutes > 0
+                ? `${Math.round((currentData.total_billable_minutes / currentData.total_minutes) * 100)}%`
+                : "—"}{" "}
+              {t("time_entries.billable_pct")}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs uppercase tracking-wide">
+              {t("time_entries.total_revenue")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {formatCurrency(currentData?.total_revenue ?? 0)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("time_entries.based_on_rate")}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bar chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Calendar className="h-4 w-4" />
+            {t("time_entries.daily_hours")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!hasData ? (
+            <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+              {t("time_entries.no_data_period")}
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11 }}
+                  className="fill-muted-foreground"
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  className="fill-muted-foreground"
+                  tickFormatter={(v) => `${v}${t("time_entries.hours_short")}`}
+                />
+                <Tooltip
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={(value: any) => [`${value}${t("time_entries.hours_short")}`, t("time_entries.total_duration")]}
+                  contentStyle={{ fontSize: 12 }}
+                />
+                <Bar dataKey="hours" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ─── Report Tab ───────────────────────────────────────────────────────────────
 
 function ReportTab() {
@@ -657,13 +924,20 @@ export default function TimeEntriesPage() {
         <ActiveTimerCard />
 
         {/* Tabs */}
-        <Tabs defaultValue="report">
-          <TabsList className="grid w-full grid-cols-1">
+        <Tabs defaultValue="summary">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="summary" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {t("time_entries.tab_summary")}
+            </TabsTrigger>
             <TabsTrigger value="report" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               {t("time_entries.tab_report")}
             </TabsTrigger>
           </TabsList>
+          <TabsContent value="summary" className="mt-4">
+            <SummaryTab />
+          </TabsContent>
           <TabsContent value="report" className="mt-4">
             <ReportTab />
           </TabsContent>

@@ -23,6 +23,13 @@ export interface TimeEntry {
   invoice?: { id: string; invoice_number: string } | null;
 }
 
+export interface TimeReportDay {
+  date: string;
+  minutes: number;
+  billable_minutes: number;
+  revenue: number;
+}
+
 export interface TimeReport {
   total_minutes: number;
   total_billable_minutes: number;
@@ -33,6 +40,7 @@ export interface TimeReport {
     billable_minutes: number;
     revenue: number;
   }[];
+  days?: TimeReportDay[];
 }
 
 // ─── Request Types ────────────────────────────────────────────────────────────
@@ -62,6 +70,7 @@ export interface TimeReportParams {
   client_id?: string;
   billable?: boolean;
   invoiced?: boolean;
+  group_by?: "day";
   sort?: "started_at" | "duration_minutes" | "project_id";
   order?: "asc" | "desc";
 }

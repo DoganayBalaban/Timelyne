@@ -265,6 +265,9 @@ export default function ClientsPage() {
                         <TableHead className="hidden lg:table-cell">
                           {t("clients.col_phone")}
                         </TableHead>
+                        <TableHead className="hidden xl:table-cell">
+                          {t("clients.col_last_activity")}
+                        </TableHead>
                         <TableHead className="w-[50px]" />
                       </TableRow>
                     </TableHeader>
@@ -301,6 +304,15 @@ export default function ClientsPage() {
                           </TableCell>
                           <TableCell className="hidden lg:table-cell text-muted-foreground">
                             {client.phone || "—"}
+                          </TableCell>
+                          <TableCell className="hidden xl:table-cell text-muted-foreground text-sm">
+                            {client.last_activity_at
+                              ? new Intl.DateTimeFormat("en-US", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                }).format(new Date(client.last_activity_at))
+                              : t("clients.never")}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
