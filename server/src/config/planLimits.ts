@@ -10,16 +10,16 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
   free: {
     clients: 3,
-    activeProjects: 3,
-    invoicesPerMonth: -1,
-    invoicesTotalCap: 5,
+    activeProjects: -1,
+    invoicesPerMonth: 10,
+    invoicesTotalCap: -1,
     expenseTracking: false,
-    clientPortal: false,
+    clientPortal: true,
   },
   starter: {
-    clients: 3,
-    activeProjects: 5,
-    invoicesPerMonth: 10,
+    clients: 10,
+    activeProjects: -1,
+    invoicesPerMonth: -1,
     invoicesTotalCap: -1,
     expenseTracking: false,
     clientPortal: true,

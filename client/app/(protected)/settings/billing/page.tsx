@@ -29,26 +29,24 @@ const PLANS = [
     id: "free",
     name: "Free",
     price: "$0",
-    description: "Get started with the basics.",
+    description: "Perfect for getting started.",
     variantId: "",
     features: [
-      "Up to 3 clients",
-      "Up to 3 active projects",
-      "Up to 5 invoices total",
-      "Basic time tracking",
-      "PDF generation",
+      "3 active clients",
+      "10 invoices/month",
+      "Time tracking",
+      "Client portal",
     ],
   },
   {
     id: "starter",
     name: "Starter",
     price: "$9",
-    description: "Perfect for solo freelancers just getting started.",
+    description: "For solo freelancers.",
     variantId: process.env.NEXT_PUBLIC_LS_VARIANT_STARTER ?? "",
     features: [
-      "Up to 3 clients",
-      "Up to 5 active projects",
-      "Up to 10 invoices / month",
+      "10 active clients",
+      "Unlimited invoices",
       "Time tracking",
       "PDF generation",
       "Client portal",
@@ -58,33 +56,16 @@ const PLANS = [
     id: "pro",
     name: "Pro",
     price: "$19",
-    description: "For established freelancers who need more power.",
+    description: "For established freelancers.",
     variantId: process.env.NEXT_PUBLIC_LS_VARIANT_PRO ?? "",
     features: [
       "Unlimited clients",
-      "Unlimited projects",
       "Unlimited invoices",
       "Time tracking",
       "PDF generation",
       "Client portal",
       "Expense tracking",
       "Advanced reports",
-      "Priority support",
-    ],
-  },
-  {
-    id: "agency",
-    name: "Agency",
-    price: "$49",
-    description: "Built for teams and agencies managing multiple freelancers.",
-    variantId: process.env.NEXT_PUBLIC_LS_VARIANT_AGENCY ?? "",
-    features: [
-      "Everything in Pro",
-      "Team members",
-      "Role-based access",
-      "Client branding",
-      "API access",
-      "Dedicated support",
     ],
   },
 ];
@@ -139,8 +120,7 @@ export default function BillingPage() {
       <div className="max-w-5xl mx-auto p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-32 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Skeleton className="h-80" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Skeleton className="h-80" />
           <Skeleton className="h-80" />
           <Skeleton className="h-80" />
@@ -209,7 +189,7 @@ export default function BillingPage() {
         <h2 className="text-lg font-semibold mb-4">
           {isOnPaidPlan ? "Change Plan" : "Upgrade Your Plan"}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {PLANS.map((plan) => {
             const isCurrent = currentPlan === plan.id;
             const isPopular = plan.id === "pro";

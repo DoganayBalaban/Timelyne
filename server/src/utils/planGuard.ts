@@ -52,46 +52,29 @@ export async function assertCanCreateProject(userId: string): Promise<void> {
 
 /**
  * Throws 403 if the user has reached their invoice limit.
- * Free plan: total cap. Starter plan: monthly cap.
+ * Free plan: 10/month cap. Starter+: unlimited.
  */
 export async function assertCanCreateInvoice(userId: string): Promise<void> {
   const plan = await getUserPlan(userId);
   const limits = getPlanLimits(plan);
 
-  // Pro/Agency: unlimited
-  if (isUnlimited(limits.invoicesPerMonth) && isUnlimited(limits.invoicesTotalCap)) return;
+  if (isUnlimited(limits.invoicesPerMonth)) return;
 
-  if (plan === "free") {
-    // Total cap
-    const count = await prisma.invoice.count({
-      where: { user_id: userId, deleted_at: null },
-    });
-    if (!isUnlimited(limits.invoicesTotalCap) && count >= limits.invoicesTotalCap) {
-      throw new AppError(
-        `Free plan allows up to ${limits.invoicesTotalCap} invoices total. Upgrade to create more.`,
-        403,
-      );
-    }
-    return;
-  }
+  const now = new Date();
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const count = await prisma.invoice.count({
+    where: {
+      user_id: userId,
+      deleted_at: null,
+      created_at: { gte: firstOfMonth },
+    },
+  });
 
-  if (plan === "starter") {
-    // Monthly cap
-    const now = new Date();
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const count = await prisma.invoice.count({
-      where: {
-        user_id: userId,
-        deleted_at: null,
-        created_at: { gte: firstOfMonth },
-      },
-    });
-    if (!isUnlimited(limits.invoicesPerMonth) && count >= limits.invoicesPerMonth) {
-      throw new AppError(
-        `Starter plan allows up to ${limits.invoicesPerMonth} invoices per month. Upgrade for unlimited.`,
-        403,
-      );
-    }
+  if (count >= limits.invoicesPerMonth) {
+    throw new AppError(
+      `Your ${plan} plan allows up to ${limits.invoicesPerMonth} invoices per month. Upgrade to create more.`,
+      403,
+    );
   }
 }
 
